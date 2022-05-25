@@ -19,6 +19,15 @@ add_subdirectory(external/corrosion)
 # include directory
 target_include_directories(gracli PUBLIC include)
 
+# So that compile_commands are copoied into the root folder and don't just sit in the build folder
+add_custom_target(
+    copy-compile-commands ALL
+    ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_BINARY_DIR}/compile_commands.json
+        ${CMAKE_CURRENT_LIST_DIR}
+    )
+
+
 # dependencies
 # -- word-packing --
 add_subdirectory(external/word-packing)
