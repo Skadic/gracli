@@ -1,3 +1,6 @@
 [submodule "external/word-packing"]
 	path = external/word-packing
 	url = https://github.com/pdinklag/word-packing
+[submodule "external/corrosion"]
+	path = external/corrosion
+	url = https://github.com/corrosion-rs/corrosion.git
