@@ -25,6 +25,6 @@ add_subdirectory(external/word-packing)
 target_include_directories(gracli PUBLIC external/word-packing/include)
 
 # -- grm_decoder --
-corrosion_import_crate(MANIFEST_PATH external/grm_decoder/Cargo.toml)
+corrosion_import_crate(MANIFEST_PATH grm_decoder/Cargo.toml)
 target_link_libraries(gracli PUBLIC grm_decoder)
-target_include_directories(gracli PUBLIC external/grm_decoder/include)
+target_include_directories(gracli PUBLIC grm_decoder/include)
