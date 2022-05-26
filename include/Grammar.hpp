@@ -63,9 +63,9 @@ class Grammar {
     static Grammar from_file(std::string file_path) {
         using grm_decoder::RawVec;
 
-        std::fstream file("../example.txt.grm", std::ios::in | std::ios::binary);
+        std::fstream file(file_path, std::ios::in | std::ios::binary);
         if (!file.is_open()) {
-            std::cout << "File not found" << std::endl;
+            std::cout << "File not found \"" << file_path << "\"" << std::endl;
             return Grammar(0);
         }
 
