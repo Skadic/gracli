@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Consts.hpp"
 #include <algorithm>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <functional>
@@ -22,8 +24,9 @@ namespace gracli {
 class Grammar {
 
   public:
-    using Symbol = u_int32_t;
-    using Rule   = std::vector<Symbol>;
+    using Symbol     = u_int32_t;
+    using Rule       = std::vector<Symbol>;
+    using RawGrammar = grm_decoder::RawVec<grm_decoder::RawVec<uint32_t>>;
 
   private:
     /**
@@ -47,19 +50,18 @@ class Grammar {
 
   public:
     /**
-     * @brief The value by which rule ids are offset in the symbol vectors of rules.
-     * The values 0 to 255 (extended ASCII) are used for terminals, while values starting at 256 are used for rule ids.
-     * The value 256 refers to rule 0, 257 refers to rule 1 et cetera.
-     */
-    static const size_t RULE_OFFSET = 256;
-
-    /**
      * @brief Construct an empty Grammar with a start rule of 0 and with a given capacity.
      *
      * @param capacity The number of rules the underlying vector will be setup to hold
      */
     Grammar(Symbol capacity) : m_rules{std::vector<Rule>(capacity, Rule())}, m_start_rule_id{0} {}
 
+    /**
+     * @brief Reads the grammar from a file.
+     *
+     * @param file_path The input file
+     * @return The grammar
+     */
     static Grammar from_file(std::string file_path) {
         using grm_decoder::RawVec;
 
@@ -73,7 +75,7 @@ class Grammar {
         std::vector<u_int8_t> buf(std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{});
         file.close();
 
-        RawVec<RawVec<u_int32_t>> raw = grm_decoder::decode_bytes(&*buf.cbegin(), buf.size());
+        RawGrammar raw = grm_decoder::decode_bytes(&*buf.cbegin(), buf.size());
 
         std::vector<RawVec<u_int32_t>> raw_rules(raw.ptr, raw.ptr + raw.len);
 
@@ -88,6 +90,66 @@ class Grammar {
         gr.m_start_rule_id = rules.size() - 1;
         gr.m_rules         = std::move(rules);
         return gr;
+    }
+
+    /**
+     * @brief Encodes the grammar and writes it to a file.
+     *
+     * @param file_path The output file
+     */
+    void encode_to_file(std::string file_path) {
+        using grm_decoder::RawVec;
+        dependency_renumber();
+
+        uint8_t *ptr = (uint8_t *) file_path.data();
+        size_t   len = file_path.length();
+
+        std::vector<RawVec<uint32_t>> raw_rules;
+        raw_rules.reserve(m_rules.size());
+
+        for (auto i = 0; i < m_rules.size(); i++) {
+            auto &rule = m_rules[i];
+
+            RawVec<uint32_t> raw;
+            raw.ptr = rule.data();
+            raw.len = rule.size();
+
+            raw_rules.push_back(raw);
+        }
+
+        RawGrammar raw_grammar;
+        raw_grammar.ptr = raw_rules.data();
+        raw_grammar.len = raw_rules.size();
+
+        grm_decoder::encode_grammar_to_file(raw_grammar, ptr, len);
+    }
+
+    std::string encode_to_string() {
+        using grm_decoder::RawVec;
+        dependency_renumber();
+
+        std::vector<RawVec<uint32_t>> raw_rules;
+        raw_rules.reserve(m_rules.size());
+
+        for (auto i = 0; i < m_rules.size(); i++) {
+            auto &rule = m_rules[i];
+
+            RawVec<uint32_t> raw;
+            raw.ptr = rule.data();
+            raw.len = rule.size();
+
+            raw_rules.push_back(raw);
+        }
+
+        RawGrammar raw_grammar;
+        raw_grammar.ptr = raw_rules.data();
+        raw_grammar.len = raw_rules.size();
+
+        RawVec<uint8_t> raw = grm_decoder::encode_grammar_to_byte_vec(raw_grammar);
+
+        std::string s((char *) raw.ptr, raw.len);
+
+        return s;
     }
 
     /**
@@ -113,7 +175,7 @@ class Grammar {
      * @param rule_id The id of the rule, whose non terminal should be appended to the vector. Note, that the parameter
      * should not have RULE_OFFSET added to it when passing it in.
      */
-    void append_nonterminal(const size_t id, size_t rule_id) { append_terminal(id, rule_id + Grammar::RULE_OFFSET); }
+    void append_nonterminal(const size_t id, size_t rule_id) { append_terminal(id, rule_id + RULE_OFFSET); }
 
     /**
      * Set the right side of a rule directly. Note that this will overwrite the previous mapping
@@ -205,7 +267,7 @@ class Grammar {
                         }
                     }
                 } else {
-                    out << 'R' << symbol - Grammar::RULE_OFFSET;
+                    out << 'R' << symbol - RULE_OFFSET;
                 }
                 out << ' ';
             }

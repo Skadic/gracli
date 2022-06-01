@@ -52,7 +52,7 @@ class NaiveQueryGrammar {
                 if (Grammar::is_terminal(symbol)) {
                     full_lengths[i] = full_lengths[i] + 1;
                 } else {
-                    full_lengths[i] = full_lengths[i] + full_lengths[symbol - Grammar::RULE_OFFSET];
+                    full_lengths[i] = full_lengths[i] + full_lengths[symbol - RULE_OFFSET];
                 }
             }
             // We do not want to include the length of the start rule, since we will save it separately
@@ -134,7 +134,7 @@ class NaiveQueryGrammar {
                         }
                     }
                 } else {
-                    out << 'R' << symbol - Grammar::RULE_OFFSET;
+                    out << 'R' << symbol - RULE_OFFSET;
                 }
                 out << ' ';
             }
@@ -169,7 +169,7 @@ class NaiveQueryGrammar {
                 if (Grammar::is_terminal(symbol)) {
                     ss << (char) symbol;
                 } else {
-                    ss << expansions[symbol - Grammar::RULE_OFFSET];
+                    ss << expansions[symbol - RULE_OFFSET];
                 }
             }
 
@@ -201,7 +201,7 @@ class NaiveQueryGrammar {
      */
     const size_t symbol_length(size_t rule_id, size_t index) const {
         const auto symbol = m_rules[rule_id][index];
-        return Grammar::is_non_terminal(symbol) ? m_full_lengths[symbol - Grammar::RULE_OFFSET] : 1;
+        return Grammar::is_non_terminal(symbol) ? m_full_lengths[symbol - RULE_OFFSET] : 1;
     }
 
     /**
@@ -271,12 +271,12 @@ class NaiveQueryGrammar {
         size_t current_index = 0;
         while (i > 0 || Grammar::is_non_terminal(m_rules[current_rule][current_index])) {
             const uint32_t symbol     = m_rules[current_rule][current_index];
-            const uint32_t symbol_len = Grammar::is_terminal(symbol) ? 1 : m_full_lengths[symbol - Grammar::RULE_OFFSET];
+            const uint32_t symbol_len = Grammar::is_terminal(symbol) ? 1 : m_full_lengths[symbol - RULE_OFFSET];
             if (i >= symbol_len) {
                 i -= symbol_len;
                 current_index += 1;
             } else {
-                current_rule  = symbol - Grammar::RULE_OFFSET;
+                current_rule  = symbol - RULE_OFFSET;
                 current_index = 0;
             }
         }
@@ -316,7 +316,7 @@ class NaiveQueryGrammar {
             // symbol was a terminal), so we write the non-terminal's contents starting at the start index
             // Also, advance the index by one, sice we handled this index already
             if (start > 0) {
-                write(symbols[index++] - Grammar::RULE_OFFSET, start);
+                write(symbols[index++] - RULE_OFFSET, start);
             }
             for (; len > 0 && index < symbols.size(); index++) {
                 if (Grammar::is_terminal(symbols[index])) {
@@ -326,7 +326,7 @@ class NaiveQueryGrammar {
                 } else {
                     // Since we're in the midst of writing this rule, we need to start at the first index inside the
                     // nonterminal
-                    write(symbols[index] - Grammar::RULE_OFFSET, 0);
+                    write(symbols[index] - RULE_OFFSET, 0);
                 }
             }
         };

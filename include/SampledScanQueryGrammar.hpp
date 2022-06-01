@@ -1,13 +1,13 @@
 #pragma once
 
-#include <queue>
 #include <cmath>
+#include <queue>
 
+#include <Grammar.hpp>
 #include <ranges>
+#include <word_packing.hpp>
 #include <word_packing/internal/packed_int_accessor.hpp>
 #include <word_packing/packed_int_vector.hpp>
-#include <Grammar.hpp>
-#include <word_packing.hpp>
 
 namespace gracli {
 
@@ -123,8 +123,8 @@ class SampledScanQueryGrammar {
                     idx_in_source++;
                 } else {
                     // Add this nonterminal to the queue to be processed later
-                    rule_queue.emplace(idx_in_source, symbol - Grammar::RULE_OFFSET);
-                    idx_in_source += rule_length(symbol - Grammar::RULE_OFFSET);
+                    rule_queue.emplace(idx_in_source, symbol - RULE_OFFSET);
+                    idx_in_source += rule_length(symbol - RULE_OFFSET);
                 }
                 internal_idx++;
             }
@@ -138,13 +138,13 @@ class SampledScanQueryGrammar {
         size_t max_len = 0;
 
         for (size_t i = 0; i < m_rules.size(); i++) {
-            auto &symbols = m_rules[i];
+            auto &symbols   = m_rules[i];
             full_lengths[i] = 0;
             for (auto symbol : symbols) {
                 if (Grammar::is_terminal(symbol)) {
                     full_lengths[i] = full_lengths[i] + 1;
                 } else {
-                    full_lengths[i] = full_lengths[i] + full_lengths[symbol - Grammar::RULE_OFFSET];
+                    full_lengths[i] = full_lengths[i] + full_lengths[symbol - RULE_OFFSET];
                 }
             }
             // We do not want to include the length of the start rule, since we will save it separately
@@ -227,7 +227,7 @@ class SampledScanQueryGrammar {
                         }
                     }
                 } else {
-                    out << 'R' << symbol - Grammar::RULE_OFFSET;
+                    out << 'R' << symbol - RULE_OFFSET;
                 }
                 out << ' ';
             }
@@ -262,7 +262,7 @@ class SampledScanQueryGrammar {
                 if (Grammar::is_terminal(symbol)) {
                     ss << (char) symbol;
                 } else {
-                    ss << expansions[symbol - Grammar::RULE_OFFSET];
+                    ss << expansions[symbol - RULE_OFFSET];
                 }
             }
 
@@ -294,7 +294,7 @@ class SampledScanQueryGrammar {
      */
     const size_t symbol_length(size_t rule_id, size_t index) const {
         const auto symbol = m_rules[rule_id][index];
-        return Grammar::is_terminal(symbol) ? 1 : rule_length(symbol - Grammar::RULE_OFFSET);
+        return Grammar::is_terminal(symbol) ? 1 : rule_length(symbol - RULE_OFFSET);
     }
 
     std::string expansion(size_t rule_id) const {
@@ -307,7 +307,7 @@ class SampledScanQueryGrammar {
                 continue;
             }
 
-            oss << expansion(symbol - Grammar::RULE_OFFSET);
+            oss << expansion(symbol - RULE_OFFSET);
         }
 
         return oss.str();
@@ -410,7 +410,7 @@ class SampledScanQueryGrammar {
                     source_index += symbol_len;
                     internal_index += 1;
                 } else {
-                    rule           = symbol - Grammar::RULE_OFFSET;
+                    rule           = symbol - RULE_OFFSET;
                     internal_index = 0;
                 }
             }
@@ -437,7 +437,7 @@ class SampledScanQueryGrammar {
                         source_index -= symbol_len;
                     } else {
                         // If i is in the nonterminal, we go into the nonterminal
-                        rule           = m_rules[rule][internal_index] - Grammar::RULE_OFFSET;
+                        rule           = m_rules[rule][internal_index] - RULE_OFFSET;
                         internal_index = m_rules[rule].size() - 1;
                     }
                 }
@@ -487,10 +487,10 @@ class SampledScanQueryGrammar {
                     continue;
                 }
 
-                auto rule_len          = rule_length(symbol - Grammar::RULE_OFFSET);
+                auto rule_len          = rule_length(symbol - RULE_OFFSET);
                 auto rule_source_index = source_index - rule_len + 1;
                 if (rule_source_index < substr_end) {
-                    write_reverse(symbol - Grammar::RULE_OFFSET);
+                    write_reverse(symbol - RULE_OFFSET);
                 } else {
                     source_index -= rule_len;
                 }
@@ -512,13 +512,13 @@ class SampledScanQueryGrammar {
                     oss << (char) symbol;
                     source_index--;
                 } else {
-                    write_reverse(symbol - Grammar::RULE_OFFSET);
+                    write_reverse(symbol - RULE_OFFSET);
                     // Write reverse handles modifying the source_index
                 }
                 internal_index--;
             } else {
                 // The symbol starts before the start of the pattern but its expansion lies partly inside the pattern
-                rule           = symbol - Grammar::RULE_OFFSET;
+                rule           = symbol - RULE_OFFSET;
                 internal_index = m_rules[rule].size() - 1;
             }
         }
@@ -570,10 +570,10 @@ class SampledScanQueryGrammar {
                     continue;
                 }
 
-                auto rule_len = rule_length(symbol - Grammar::RULE_OFFSET);
+                auto rule_len = rule_length(symbol - RULE_OFFSET);
                 // Does this nonterminal lie completely in our range? then write it. Otherwise just skip it
                 if (source_index + rule_len > substr_start) {
-                    write(symbol - Grammar::RULE_OFFSET);
+                    write(symbol - RULE_OFFSET);
                 } else {
                     source_index += rule_len;
                 }
@@ -595,13 +595,13 @@ class SampledScanQueryGrammar {
                     oss << (char) symbol;
                     source_index++;
                 } else {
-                    write(symbol - Grammar::RULE_OFFSET);
+                    write(symbol - RULE_OFFSET);
                 }
                 internal_index++;
             } else {
                 // The symbol doesn't end before substr_end so we need to go into the symbol and continue searching
                 // there
-                rule           = symbol - Grammar::RULE_OFFSET;
+                rule           = symbol - RULE_OFFSET;
                 internal_index = 0;
             }
         }
