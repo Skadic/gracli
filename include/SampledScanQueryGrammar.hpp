@@ -1,19 +1,11 @@
 #pragma once
 
-#include <algorithm>
-#include <cmath>
-#include <cstdint>
-#include <functional>
-#include <iostream>
-#include <limits>
-#include <numbers>
 #include <queue>
-#include <ranges>
-#include <tuple>
-#include <vector>
+#include <cmath>
 
-#include "word_packing/internal/packed_int_accessor.hpp"
-#include "word_packing/packed_int_vector.hpp"
+#include <ranges>
+#include <word_packing/internal/packed_int_accessor.hpp>
+#include <word_packing/packed_int_vector.hpp>
 #include <Grammar.hpp>
 #include <word_packing.hpp>
 
