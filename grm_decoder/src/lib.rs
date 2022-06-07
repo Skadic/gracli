@@ -1,6 +1,6 @@
 use std::{io::Read, slice};
 
-use bitstream_io::{BitRead, BitReader, LittleEndian, BitWriter, BitWrite};
+use bitstream_io::{BigEndian, BitRead, BitReader, BitWrite, BitWriter};
 
 const RULE_OFFSET: u32 = 256;
 
@@ -12,7 +12,7 @@ pub struct RawVec<T> {
     pub len: usize,
 }
 
-/// Decodes an encoded grammar from a vector of bytes. 
+/// Decodes an encoded grammar from a vector of bytes.
 ///
 /// # Arguments
 ///
@@ -25,7 +25,7 @@ pub struct RawVec<T> {
 /// bytes depict a valid encoded grammar.
 ///
 #[no_mangle]
-pub unsafe extern fn decode_bytes(ptr: *const u8, len: usize) -> RawVec<RawVec<u32>> {
+pub unsafe extern "C" fn decode_bytes(ptr: *const u8, len: usize) -> RawVec<RawVec<u32>> {
     let slice = slice::from_raw_parts(ptr, len);
     let rules: Vec<Vec<u32>> = decode(slice).expect("Error decoding grammar");
     let mut rules = rules
@@ -59,7 +59,7 @@ pub unsafe extern fn decode_bytes(ptr: *const u8, len: usize) -> RawVec<RawVec<u
 /// the vecs describe a valid grammar.
 ///
 #[no_mangle]
-pub unsafe extern fn encode_grammar_to_byte_vec(grammar: RawVec<RawVec<u32>>) -> RawVec<u8> {
+pub unsafe extern "C" fn encode_grammar_to_byte_vec(grammar: RawVec<RawVec<u32>>) -> RawVec<u8> {
     let mut s = Vec::<u8>::new();
     encode(&grammar, &mut s).expect("Error encoding grammar to string");
     s.shrink_to_fit();
@@ -69,8 +69,6 @@ pub unsafe extern fn encode_grammar_to_byte_vec(grammar: RawVec<RawVec<u32>>) ->
 
     RawVec { ptr, len }
 }
-
-
 
 /// Encodes a grammar and writes the contents to a file.
 ///
@@ -88,7 +86,11 @@ pub unsafe extern fn encode_grammar_to_byte_vec(grammar: RawVec<RawVec<u32>>) ->
 /// utf8 string.
 ///
 #[no_mangle]
-pub unsafe extern fn encode_grammar_to_file(grammar: RawVec<RawVec<u32>>, ptr: *const u8, len: usize) {
+pub unsafe extern "C" fn encode_grammar_to_file(
+    grammar: RawVec<RawVec<u32>>,
+    ptr: *const u8,
+    len: usize,
+) {
     let file_name_bytes = slice::from_raw_parts(ptr as *mut u8, len);
     let file_name = String::from_utf8_lossy(file_name_bytes);
 
@@ -97,9 +99,8 @@ pub unsafe extern fn encode_grammar_to_file(grammar: RawVec<RawVec<u32>>, ptr: *
     encode(&grammar, file).expect("Error decoding Grammar")
 }
 
-
 fn decode(input: impl Read) -> Result<Vec<Vec<u32>>, std::io::Error> {
-    let mut bit_reader = BitReader::endian(input, LittleEndian);
+    let mut bit_reader = BitReader::endian(input, BigEndian);
 
     let mut buf32 = [0u8; 4];
     let mut buf8 = [0u8];
@@ -107,7 +108,7 @@ fn decode(input: impl Read) -> Result<Vec<Vec<u32>>, std::io::Error> {
     macro_rules! rd {
         (u32) => {{
             bit_reader.read_bytes(&mut buf32)?;
-            u32::from_le_bytes(buf32) as u32
+            u32::from_be_bytes(buf32) as u32
         }};
         (u8) => {{
             bit_reader.read_bytes(&mut buf8)?;
@@ -115,21 +116,23 @@ fn decode(input: impl Read) -> Result<Vec<Vec<u32>>, std::io::Error> {
         }};
     }
 
-    let rule_count = rd!(u32) as usize;
+    let rule_count = rd!(u32);
+    let min_rule_len = rd!(u32);
+    let _max_rule_len = rd!(u32);
 
-    let mut rules = Vec::with_capacity(rule_count);
+    let mut rules = Vec::with_capacity(rule_count as usize);
 
     for _ in 0..rule_count {
-        let rule_size = rd!(u32) as usize;
-        let mut rule = Vec::<u32>::with_capacity(rule_size);
-        for _ in 0..rule_size {
+        let rule_len = rd!(u32) + min_rule_len;
+        let mut rule = Vec::<u32>::with_capacity(rule_len as usize);
+        for _ in 0..rule_len {
             let is_nonterminal = bit_reader.read_bit()?;
             let symbol = if is_nonterminal {
                 rd!(u32) + RULE_OFFSET
             } else {
                 rd!(u8)
             };
-            rule.push(symbol);
+            rule.push(symbol as u32);
         }
         rule.shrink_to_fit();
         rules.push(rule);
@@ -138,30 +141,41 @@ fn decode(input: impl Read) -> Result<Vec<Vec<u32>>, std::io::Error> {
     Ok(rules)
 }
 
-unsafe fn encode<Out: std::io::Write>(grammar: &RawVec<RawVec<u32>>, out: Out) -> Result<(), std::io::Error> {
-    let mut bit_writer = BitWriter::endian(out, LittleEndian);
+unsafe fn encode<Out: std::io::Write>(
+    grammar: &RawVec<RawVec<u32>>,
+    out: Out,
+) -> Result<(), std::io::Error> {
+    let mut bit_writer = BitWriter::endian(out, BigEndian);
 
     // We write this to the output so we know when to stop reading, in case there are
     // additional padding bits
-    let rule_count = grammar.len as u32;
-    let rule_count_bytes = rule_count.to_le_bytes();
-    bit_writer.write_bytes(&rule_count_bytes)?;
+    let rule_count = grammar.len;
+    bit_writer.write_bytes(&u32::to_be_bytes(rule_count as u32))?;
 
-    for rule in (0..rule_count).map(|i| &*grammar.ptr.offset(i as isize)) {
+    let (min_len, max_len) = (0..rule_count)
+        .map(|i| &*grammar.ptr.add(i))
+        .map(|raw_rule| raw_rule.len as u32)
+        .fold((u32::MAX, 0), |(old_min, old_max), len| {
+            (u32::min(old_min, len), u32::max(old_max, len))
+        });
+
+    bit_writer.write_bytes(&u32::to_be_bytes(min_len))?;
+    bit_writer.write_bytes(&u32::to_be_bytes(max_len))?;
+
+    for rule in (0..rule_count).map(|i| &*grammar.ptr.add(i)) {
         // Write the rule length to the output
-        let rule_size = rule.len as u32;
-        let rule_size_bytes = rule_size.to_le_bytes();
-        bit_writer.write_bytes(&rule_size_bytes)?;
+        let encoded_rule_size = rule.len as u32 - min_len;
+        bit_writer.write_bytes(&u32::to_be_bytes(encoded_rule_size))?;
 
-        for symbol in (0..rule_size).map(|i| *rule.ptr.offset(i as isize)) {
-            if symbol < RULE_OFFSET {
+        for symbol in (0..rule.len).map(|i| *rule.ptr.add(i)) {
+            if symbol < RULE_OFFSET as u32 {
                 // If the symbol is a terminal we write a 0 bit and then the terminal itself
                 let symbol = symbol as u8;
                 bit_writer.write_bit(false)?;
                 bit_writer.write_bytes(&[symbol])?;
             } else {
                 // If the symbol is a non-terminal we write a 1 bit and then the symbol
-                let symbol_bytes = ((symbol - RULE_OFFSET) as u32).to_le_bytes();
+                let symbol_bytes = u32::to_be_bytes(symbol as u32 - RULE_OFFSET);
                 bit_writer.write_bit(true)?;
                 bit_writer.write_bytes(&symbol_bytes)?;
             }

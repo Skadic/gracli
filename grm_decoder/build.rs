@@ -7,10 +7,8 @@ fn main() {
         .map(PathBuf::from)
         .unwrap();
     let package_name = std::env::var("CARGO_PKG_NAME").unwrap();
-    let include_dir = PathBuf::from(&crate_dir)
-        .join("include");
+    let include_dir = crate_dir.join("include");
     let include_file = include_dir.join(format!("{package_name}.hpp"));
-
 
     if !include_dir.exists() {
         std::fs::create_dir(include_dir).unwrap();
