@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <Util.hpp>
-#include <grm_decoder.hpp>
+#include <grammar_coding.hpp>
 #include <word_packing.hpp>
 
 namespace gracli {
@@ -26,7 +26,7 @@ class Grammar {
   public:
     using Symbol     = u_int32_t;
     using Rule       = std::vector<Symbol>;
-    using RawGrammar = grm_decoder::RawVec<grm_decoder::RawVec<uint32_t>>;
+    using RawGrammar = grammar_coding::RawVec<grammar_coding::RawVec<uint32_t>>;
 
   private:
     /**
@@ -63,7 +63,7 @@ class Grammar {
      * @return The grammar
      */
     static Grammar from_file(std::string file_path) {
-        using grm_decoder::RawVec;
+        using grammar_coding::RawVec;
 
         std::fstream file(file_path, std::ios::in | std::ios::binary);
         if (!file.is_open()) {
@@ -75,7 +75,7 @@ class Grammar {
         std::vector<u_int8_t> buf(std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{});
         file.close();
 
-        RawGrammar raw = grm_decoder::decode_bytes(&*buf.cbegin(), buf.size());
+        RawGrammar raw = grammar_coding::from_bytes(&*buf.cbegin(), buf.size(), grammar_coding::Coder::GrammarTuple);
 
         std::vector<RawVec<u_int32_t>> raw_rules(raw.ptr, raw.ptr + raw.len);
 
@@ -98,7 +98,7 @@ class Grammar {
      * @param file_path The output file
      */
     void encode_to_file(std::string file_path) {
-        using grm_decoder::RawVec;
+        using grammar_coding::RawVec;
         dependency_renumber();
 
         uint8_t *ptr = (uint8_t *) file_path.data();
@@ -121,11 +121,11 @@ class Grammar {
         raw_grammar.ptr = raw_rules.data();
         raw_grammar.len = raw_rules.size();
 
-        grm_decoder::encode_grammar_to_file(raw_grammar, ptr, len);
+        grammar_coding::to_file(raw_grammar, ptr, len, grammar_coding::Coder::GrammarTuple);
     }
 
     std::string encode_to_string() {
-        using grm_decoder::RawVec;
+        using grammar_coding::RawVec;
         dependency_renumber();
 
         std::vector<RawVec<uint32_t>> raw_rules;
@@ -145,7 +145,7 @@ class Grammar {
         raw_grammar.ptr = raw_rules.data();
         raw_grammar.len = raw_rules.size();
 
-        RawVec<uint8_t> raw = grm_decoder::encode_grammar_to_byte_vec(raw_grammar);
+        RawVec<uint8_t> raw = grammar_coding::to_bytes(raw_grammar,  grammar_coding::Coder::GrammarTuple);
 
         std::string s((char *) raw.ptr, raw.len);
 
