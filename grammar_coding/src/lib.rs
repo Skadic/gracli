@@ -2,6 +2,7 @@
 mod coding;
 mod consts;
 mod grammar_tuple;
+mod didactic;
 mod util;
 
 

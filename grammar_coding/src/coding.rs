@@ -1,6 +1,6 @@
 use std::slice;
 
-use crate::{util::RawVec, grammar_tuple};
+use crate::{util::RawVec, grammar_tuple, didactic};
 
 
 #[repr(u32)]
@@ -69,7 +69,7 @@ pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> Raw
 pub unsafe extern fn to_bytes(grammar: RawGrammar, coder: Coder) -> RawVec<u8> {
     let mut s = Vec::<u8>::new();
     match coder {
-        Coder::Didactic => unimplemented!("Didactic coder does not encode"),
+        Coder::Didactic => didactic::encode(&grammar, &mut s),
         Coder::GrammarTuple => grammar_tuple::encode(&grammar, &mut s),
         _ => unimplemented!("Coder unimplemented")
     }.expect("Error encoding grammar to string");
@@ -104,7 +104,7 @@ pub unsafe extern fn to_file(grammar: RawGrammar, ptr: *const u8, len: usize, co
     let file = std::fs::File::create(&file_name[..]).expect("Could not create file");
 
     match coder {
-        Coder::Didactic => unimplemented!("Didactic coder does not encode"),
+        Coder::Didactic => didactic::encode(&grammar, file),
         Coder::GrammarTuple => grammar_tuple::encode(&grammar, file),
         _ => unimplemented!("Coder unimplemented")
     }.expect("Error decoding Grammar")
