@@ -12,6 +12,13 @@ add_executable(gracli src/main.cpp)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+# Copy compile_commands into the root folder instead of just sitting in the build folder
+add_custom_target(
+  copy-compile-commands ALL
+  COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_CURRENT_LIST_DIR}/compile_commands.json
+  COMMAND ${CMAKE_COMMAND} -E rename ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_LIST_DIR}/compile_commands.json
+  COMMAND ${CMAKE_COMMAND} -E echo "Moved compile_commands.json into root folder"
+)
 
 # enable corrosion
 add_subdirectory(external/corrosion)
@@ -19,13 +26,6 @@ add_subdirectory(external/corrosion)
 # include directory
 target_include_directories(gracli PUBLIC include)
 
-# So that compile_commands are copoied into the root folder and don't just sit in the build folder
-add_custom_target(
-    copy-compile-commands ALL
-    ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_BINARY_DIR}/compile_commands.json
-        ${CMAKE_CURRENT_LIST_DIR}
-    )
 
 
 # dependencies
@@ -33,7 +33,7 @@ add_custom_target(
 add_subdirectory(external/word-packing)
 target_include_directories(gracli PUBLIC external/word-packing/include)
 
-# -- grm_decoder --
-corrosion_import_crate(MANIFEST_PATH grm_decoder/Cargo.toml)
-target_link_libraries(gracli PUBLIC grm_decoder)
-target_include_directories(gracli PUBLIC grm_decoder/include)
+# -- rust --
+corrosion_import_crate(MANIFEST_PATH grammar_coding/Cargo.toml)
+target_link_libraries(gracli PUBLIC grammar_coding)
+target_include_directories(gracli PUBLIC grammar_coding/include)

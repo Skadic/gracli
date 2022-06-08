@@ -1,0 +1,3 @@
+language = "C++"
+
+namespaces = [ "grammar_coding" ]

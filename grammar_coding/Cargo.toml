@@ -1,5 +1,5 @@
 [package]
-name = "grm_decoder"
+name = "grammar_coding"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,5 +12,5 @@ bitstream-io = "1.3.0"
 cbindgen = "0.23.0"
 
 [lib]
-name = "grm_decoder"
+name = "grammar_coding"
 crate-type = ["staticlib"]
