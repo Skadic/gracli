@@ -7,7 +7,9 @@ int main(int argc, char **argv) {
 
     grammar_coding::RawArgs args = *grammar_coding::parse_args();
 
-    std::cout << args.decode << std::endl;
+    std::cout << "Decode? " << args.decode << std::endl;
+    std::cout << "Interactive? " << args.interactive << std::endl;
+    std::cout << "File? " << args.file << std::endl;
   
     std::cout << "The file is: " << args.file << std::endl;
 

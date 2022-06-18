@@ -36,9 +36,7 @@ impl From<ArgsInternal> for RawArgs {
         println!("Parsed string: {}", &int.file);
         let cstr: CString =
             CString::new(int.file).expect("Error converting file name to C compatible string");
-        let raw_file = cstr.as_ptr() as *mut c_char;
-        // We don't want the string to be deallocated when passing it to C++
-        std::mem::forget(cstr);
+        let raw_file = cstr.into_raw() as *mut c_char;
 
         println!("Is null? {}", raw_file.is_null());
 
@@ -52,8 +50,19 @@ impl From<ArgsInternal> for RawArgs {
 
 #[no_mangle]
 pub extern "C" fn parse_args() -> *const RawArgs {
-    let args = ArgsInternal::parse().into();
-    let arg_ptr = &args as *const RawArgs;
-    std::mem::forget(args);
+    let args = Box::<RawArgs>::new(ArgsInternal::parse().into());
+    let arg_ptr = Box::into_raw(args);
     arg_ptr
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn dealloc_raw_args(raw_args: *mut RawArgs) {
+    if raw_args.is_null() {
+        return
+    }
+
+    // When this goes out of scope, the heap memory is deallocated
+    let raw_args = Box::from_raw(raw_args);
+    // When this goes out of scope, the file string is deallocated
+    let _ = CString::from_raw(raw_args.file);
 }

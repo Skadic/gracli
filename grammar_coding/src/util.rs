@@ -13,6 +13,10 @@ impl<T> RawVec<T> {
     pub fn iter(&self) -> std::slice::Iter<T> {
         AsRef::<[T]>::as_ref(self).iter()
     } 
+
+    pub unsafe fn to_vec(self) {
+        let _ = Vec::from_raw_parts(self.ptr, self.len, self.len);
+    }
 }
 
 impl<T> AsRef<[T]> for RawVec<T> {

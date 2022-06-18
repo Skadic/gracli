@@ -50,9 +50,8 @@ pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> *mu
     let len = rules.len();
     std::mem::forget(rules);
 
-    let mut raw_v  = RawVec { ptr, len };
-    let raw_v_ptr = &mut raw_v as *mut RawGrammar;
-    std::mem::forget(raw_v);
+    let raw_v = Box::new(RawVec { ptr, len });
+    let raw_v_ptr = Box::into_raw(raw_v);
     raw_v_ptr
 }
 
@@ -81,9 +80,8 @@ pub unsafe extern fn to_bytes(grammar: RawGrammar, coder: Coder) -> *mut RawVec<
     let len = s.len();
     std::mem::forget(s);
 
-    let mut raw_v  = RawVec { ptr, len };
-    let raw_v_ptr = &mut raw_v as *mut RawVec<u8>;
-    std::mem::forget(raw_v);
+    let raw_v  = Box::new(RawVec { ptr, len });
+    let raw_v_ptr = Box::into_raw(raw_v);
     raw_v_ptr
 }
 
