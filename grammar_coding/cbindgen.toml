@@ -1,3 +1,10 @@
 language = "C++"
 
 namespaces = [ "grammar_coding" ]
+
+[export.body]
+"RawArgs" = """
+  ~RawArgs() {
+    delete file;
+  };
+"""

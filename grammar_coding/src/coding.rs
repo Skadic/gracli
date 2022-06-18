@@ -26,7 +26,7 @@ type RawGrammar = RawVec<RawVec<u32>>;
 /// bytes depict a valid encoded grammar.
 ///
 #[no_mangle]
-pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> RawGrammar
+pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> *mut RawGrammar
 {
     let slice = slice::from_raw_parts(ptr, len);
     let rules: Vec<Vec<u32>> = match coder {
@@ -50,7 +50,10 @@ pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> Raw
     let len = rules.len();
     std::mem::forget(rules);
 
-    RawVec { ptr, len }
+    let mut raw_v  = RawVec { ptr, len };
+    let raw_v_ptr = &mut raw_v as *mut RawGrammar;
+    std::mem::forget(raw_v);
+    raw_v_ptr
 }
 
 /// This function takes a grammar in raw vec form and encodes it to a vector of bytes.
@@ -66,7 +69,7 @@ pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> Raw
 /// the vecs describe a valid grammar.
 ///
 #[no_mangle]
-pub unsafe extern fn to_bytes(grammar: RawGrammar, coder: Coder) -> RawVec<u8> {
+pub unsafe extern fn to_bytes(grammar: RawGrammar, coder: Coder) -> *mut RawVec<u8> {
     let mut s = Vec::<u8>::new();
     match coder {
         Coder::Didactic => didactic::encode(&grammar, &mut s),
@@ -78,7 +81,10 @@ pub unsafe extern fn to_bytes(grammar: RawGrammar, coder: Coder) -> RawVec<u8> {
     let len = s.len();
     std::mem::forget(s);
 
-    RawVec { ptr, len }
+    let mut raw_v  = RawVec { ptr, len };
+    let raw_v_ptr = &mut raw_v as *mut RawVec<u8>;
+    std::mem::forget(raw_v);
+    raw_v_ptr
 }
 
 /// Encodes a grammar and writes the contents to a file.

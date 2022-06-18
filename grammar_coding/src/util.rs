@@ -1,3 +1,5 @@
+use std::slice;
+
 
 #[repr(C)]
 /// Represents a vector with a pointer and the number of elements.
@@ -5,4 +7,16 @@
 pub struct RawVec<T> {
     pub ptr: *mut T,
     pub len: usize,
+}
+
+impl<T> RawVec<T> {
+    pub fn iter(&self) -> std::slice::Iter<T> {
+        AsRef::<[T]>::as_ref(self).iter()
+    } 
+}
+
+impl<T> AsRef<[T]> for RawVec<T> {
+    fn as_ref(&self) -> &[T] {
+        unsafe { slice::from_raw_parts(self.ptr, self.len) }
+    }
 }

@@ -10,4 +10,7 @@ T invalid() {
     return std::numeric_limits<T>().max();
 }
 
+
+
+
 } // namespace gracli

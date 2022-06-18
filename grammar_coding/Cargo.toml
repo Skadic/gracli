@@ -1,5 +1,6 @@
 [package]
 name = "grammar_coding"
+author = "Etienne Palanga"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +8,8 @@ edition = "2021"
 
 [dependencies]
 bitstream-io = "1.5.0"
+clap = {version = "3.2.5", features = ["derive", "color"]}
+libc = "0.2.126"
 
 [build-dependencies]
 cbindgen = "0.24.3"

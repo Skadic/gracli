@@ -62,7 +62,10 @@ class Grammar {
      * @param file_path The input file
      * @return The grammar
      */
-    static Grammar from_file(std::string file_path) {
+    static Grammar from_file(std::string file_path) { return from_file(file_path.data()); }
+
+    static Grammar from_file(char *file_path) {
+
         using grammar_coding::RawVec;
 
         std::fstream file(file_path, std::ios::in | std::ios::binary);
@@ -75,7 +78,7 @@ class Grammar {
         std::vector<u_int8_t> buf(std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{});
         file.close();
 
-        RawGrammar raw = grammar_coding::from_bytes(&*buf.cbegin(), buf.size(), grammar_coding::Coder::GrammarTuple);
+        RawGrammar raw = *grammar_coding::from_bytes(&*buf.cbegin(), buf.size(), grammar_coding::Coder::GrammarTuple);
 
         std::vector<RawVec<u_int32_t>> raw_rules(raw.ptr, raw.ptr + raw.len);
 
@@ -145,7 +148,7 @@ class Grammar {
         raw_grammar.ptr = raw_rules.data();
         raw_grammar.len = raw_rules.size();
 
-        RawVec<uint8_t> raw = grammar_coding::to_bytes(raw_grammar,  grammar_coding::Coder::GrammarTuple);
+        RawVec<uint8_t> raw = *grammar_coding::to_bytes(raw_grammar, grammar_coding::Coder::GrammarTuple);
 
         std::string s((char *) raw.ptr, raw.len);
 
