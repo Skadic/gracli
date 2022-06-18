@@ -2,12 +2,10 @@
 
 #include <cmath>
 #include <queue>
-
-#include <Grammar.hpp>
 #include <ranges>
+
+#include <grammar.hpp>
 #include <word_packing.hpp>
-#include <word_packing/internal/packed_int_accessor.hpp>
-#include <word_packing/packed_int_vector.hpp>
 
 namespace gracli {
 

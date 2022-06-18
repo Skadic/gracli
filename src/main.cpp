@@ -1,6 +1,6 @@
 
 
-#include <Grammar.hpp>
+#include <grammar.hpp>
 
 int main(int argc, char **argv) {
     using namespace gracli;

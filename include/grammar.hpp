@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Consts.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
@@ -11,8 +10,9 @@
 #include <sys/types.h>
 #include <vector>
 
-#include <Util.hpp>
+#include <consts.hpp>
 #include <grammar_coding.hpp>
+#include <util.hpp>
 #include <word_packing.hpp>
 
 namespace gracli {

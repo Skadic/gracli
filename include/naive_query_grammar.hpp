@@ -1,12 +1,13 @@
 #pragma once
 
-#include <iterator>
-#include <word_packing/packed_int_vector.hpp>
-#include <Grammar.hpp>
+#include <cmath>
 #include <functional>
 #include <iostream>
-#include <cmath>
+#include <iterator>
 #include <vector>
+
+#include <grammar.hpp>
+#include <word_packing/packed_int_vector.hpp>
 
 namespace gracli {
 class NaiveQueryGrammar {
@@ -36,7 +37,7 @@ class NaiveQueryGrammar {
      */
     size_t m_start_rule_id;
 
-    uint32_t            m_start_rule_full_length;
+    uint32_t                            m_start_rule_full_length;
     word_packing::PackedIntVector<Pack> m_full_lengths;
 
     std::pair<uint32_t, word_packing::PackedIntVector<Pack>> calculate_full_lengths() {
@@ -46,7 +47,7 @@ class NaiveQueryGrammar {
         size_t max_len = 0;
 
         for (size_t i = 0; i < m_rules.size(); i++) {
-            auto &symbols = m_rules[i];
+            auto &symbols   = m_rules[i];
             full_lengths[i] = 0;
             for (auto symbol : symbols) {
                 if (Grammar::is_terminal(symbol)) {
@@ -336,4 +337,4 @@ class NaiveQueryGrammar {
     }
 };
 
-} // namespace tdc::grammar
+} // namespace gracli
