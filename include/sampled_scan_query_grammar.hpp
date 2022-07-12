@@ -5,6 +5,7 @@
 #include <ranges>
 
 #include <grammar.hpp>
+#include <sstream>
 #include <word_packing.hpp>
 
 namespace gracli {
@@ -280,7 +281,7 @@ class SampledScanQueryGrammar {
      *
      * @return const size_t The id of the start rule
      */
-    const size_t start_rule_id() const { return m_start_rule_id; }
+    const inline size_t start_rule_id() const { return m_start_rule_id; }
 
     /**
      * @brief Returns the expanded length of the symbol at the given index in the right side of the given rule.
@@ -290,7 +291,7 @@ class SampledScanQueryGrammar {
      *
      * @return The fully expanded length of the symbol.
      */
-    const size_t symbol_length(size_t rule_id, size_t index) const {
+    const inline size_t symbol_length(size_t rule_id, size_t index) const {
         const auto symbol = m_rules[rule_id][index];
         return Grammar::is_terminal(symbol) ? 1 : rule_length(symbol - RULE_OFFSET);
     }
@@ -318,12 +319,8 @@ class SampledScanQueryGrammar {
      *
      * @return The fully expanded length of the rule.
      */
-    const size_t rule_length(size_t rule_id) const {
-        if (rule_id != m_start_rule_id) {
-            return (size_t) m_full_lengths[rule_id];
-        } else {
-            return m_start_rule_full_length;
-        }
+    const inline size_t rule_length(size_t rule_id) const {
+        return rule_id != m_start_rule_id ? (size_t) m_full_lengths[rule_id] : m_start_rule_full_length;
     }
 
     /**
@@ -333,7 +330,7 @@ class SampledScanQueryGrammar {
      *
      * @return const size_t The size of the grammar
      */
-    const size_t grammar_size() const {
+    const inline size_t grammar_size() const {
         auto count = 0;
         for (size_t rule_id = 0; rule_id < m_rules.size(); rule_id++) {
             count += m_rules[rule_id].size();
@@ -346,7 +343,7 @@ class SampledScanQueryGrammar {
      *
      * @return const size_t The rule count
      */
-    const size_t rule_count() const { return m_rules.size(); }
+    const inline size_t rule_count() const { return m_rules.size(); }
 
     /**
      * @brief Checks whether this grammar contains the rule with the given id
@@ -355,7 +352,7 @@ class SampledScanQueryGrammar {
      * @return true If the grammar contains the rule with the given id
      * @return false If the grammar does not contain the rule with the given id
      */
-    const bool contains_rule(size_t id) const { return m_rules.size() < id && !m_rules[id].empty(); }
+    const inline bool contains_rule(size_t id) const { return m_rules.size() < id && !m_rules[id].empty(); }
 
     /**
      * @brief Checks whether the grammar is empty
@@ -363,25 +360,25 @@ class SampledScanQueryGrammar {
      * @return true If the grammar contains no rules
      * @return false If the grammar contains rules
      */
-    const bool empty() const { return rule_count() == 0; }
+    const inline bool empty() const { return rule_count() == 0; }
 
-    auto begin() const { return m_rules.cbegin(); }
+    inline auto begin() const { return m_rules.cbegin(); }
 
-    auto end() const { return m_rules.cend(); }
+    inline auto end() const { return m_rules.cend(); }
 
     /**
      * @brief Gets the sampled queries.
      *
      * @return
      */
-    const std::vector<QuerySample> &samples() const { return m_samples; }
+    const inline std::vector<QuerySample> &samples() const { return m_samples; }
 
     /**
      * @brief Returns the length of the source string.
      *
      * @return The length of the source string.
      */
-    const size_t source_length() const { return m_start_rule_full_length; }
+    const inline size_t source_length() const { return m_start_rule_full_length; }
 
     /**
      * @brief Returns the character at index i in the source string.
@@ -444,6 +441,36 @@ class SampledScanQueryGrammar {
         }
     }
 
+  private:
+    /**
+     * @brief Writes the expansion of the rule with the given id to the stringstream in reverse.
+     * This respects the range substr_start and substr_end and only writes characters inside that range
+     */
+    void write_expansion_reverse(const size_t        id,
+                                 size_t             &source_index,
+                                 const size_t        substr_start,
+                                 const size_t        substr_end,
+                                 std::ostringstream &oss) const {
+        auto &symbols = m_rules[id];
+
+        for (auto symbol : std::views::reverse(symbols)) {
+            if (Grammar::is_terminal(symbol)) {
+                if (source_index < substr_end) {
+                    oss << (char) symbol;
+                }
+                source_index--;
+                continue;
+            }
+
+            auto rule_len          = rule_length(symbol - RULE_OFFSET);
+            auto rule_source_index = source_index - rule_len + 1;
+            if (rule_source_index < substr_end) {
+                write_expansion_reverse(symbol - RULE_OFFSET, source_index, substr_start, substr_end, oss);
+            } else {
+                source_index -= rule_len;
+            }
+        }
+    };
     /**
      * @brief Get the intersection of the left part of the block in which substr_start and substr_end are found
      * and the range [substr_start, substr_end).
@@ -469,32 +496,6 @@ class SampledScanQueryGrammar {
 
         std::ostringstream oss;
 
-        /**
-         * @brief Writes the expansion of the rule with the given id to the stringstream in reverse.
-         * This respects the range substr_start and substr_end and only writes characters inside that range
-         */
-        std::function<void(size_t)> write_reverse = [&](size_t id) {
-            auto &symbols = m_rules[id];
-
-            for (auto symbol : std::views::reverse(symbols)) {
-                if (Grammar::is_terminal(symbol)) {
-                    if (source_index < substr_end) {
-                        oss << (char) symbol;
-                    }
-                    source_index--;
-                    continue;
-                }
-
-                auto rule_len          = rule_length(symbol - RULE_OFFSET);
-                auto rule_source_index = source_index - rule_len + 1;
-                if (rule_source_index < substr_end) {
-                    write_reverse(symbol - RULE_OFFSET);
-                } else {
-                    source_index -= rule_len;
-                }
-            }
-        };
-
         while (source_index >= substr_start) {
             auto symbol              = m_rules[rule][internal_index];
             auto symbol_len          = symbol_length(rule, internal_index);
@@ -510,7 +511,7 @@ class SampledScanQueryGrammar {
                     oss << (char) symbol;
                     source_index--;
                 } else {
-                    write_reverse(symbol - RULE_OFFSET);
+                    write_expansion_reverse(symbol - RULE_OFFSET, source_index, substr_start, substr_end, oss);
                     // Write reverse handles modifying the source_index
                 }
                 internal_index--;
@@ -525,6 +526,36 @@ class SampledScanQueryGrammar {
         std::ranges::reverse(out.begin(), out.end());
         return out;
     }
+
+    /**
+     * @brief Writes the expansion of the rule with the given id to the string stream and modifies source_index
+     * accordingly. This also respect susbtr_start and substr_end and only writes characters that are in that range
+     */
+    void write_expansion(const size_t        id,
+                         size_t             &source_index,
+                         const size_t        substr_start,
+                         const size_t        substr_end,
+                         std::ostringstream &oss) const {
+        auto &symbols = m_rules[id];
+        for (auto symbol : symbols) {
+            if (Grammar::is_terminal(symbol)) {
+                // If this terminal is not inside our range we don't write it
+                if (source_index >= substr_start) {
+                    oss << (char) symbol;
+                }
+                source_index++;
+                continue;
+            }
+
+            auto rule_len = rule_length(symbol - RULE_OFFSET);
+            // Does this nonterminal lie completely in our range? then write it. Otherwise just skip it
+            if (source_index + rule_len > substr_start) {
+                write_expansion(symbol - RULE_OFFSET, source_index, substr_start, substr_end, oss);
+            } else {
+                source_index += rule_len;
+            }
+        }
+    };
 
     /**
      * @brief Get the intersection of the right part of the block in which substr_start and substr_end are found
@@ -552,32 +583,6 @@ class SampledScanQueryGrammar {
 
         std::ostringstream oss;
 
-        /**
-         * @brief Writes the expansion of the rule with the given id to the string stream and modifies source_index
-         * accordingly. This also respect susbtr_start and substr_end and only writes characters that are in that range
-         */
-        std::function<void(size_t)> write = [&](size_t id) {
-            auto &symbols = m_rules[id];
-            for (auto symbol : symbols) {
-                if (Grammar::is_terminal(symbol)) {
-                    // If this terminal is not inside our range we don't write it
-                    if (source_index >= substr_start) {
-                        oss << (char) symbol;
-                    }
-                    source_index++;
-                    continue;
-                }
-
-                auto rule_len = rule_length(symbol - RULE_OFFSET);
-                // Does this nonterminal lie completely in our range? then write it. Otherwise just skip it
-                if (source_index + rule_len > substr_start) {
-                    write(symbol - RULE_OFFSET);
-                } else {
-                    source_index += rule_len;
-                }
-            }
-        };
-
         while (source_index < substr_end) {
             auto symbol     = m_rules[rule][internal_index];
             auto symbol_len = symbol_length(rule, internal_index);
@@ -593,7 +598,7 @@ class SampledScanQueryGrammar {
                     oss << (char) symbol;
                     source_index++;
                 } else {
-                    write(symbol - RULE_OFFSET);
+                    write_expansion(symbol - RULE_OFFSET, source_index, substr_start, substr_end, oss);
                 }
                 internal_index++;
             } else {
@@ -607,6 +612,7 @@ class SampledScanQueryGrammar {
         return oss.str();
     }
 
+  public:
     /**
      * @brief Gets the substring from a start to an end index in the source string.
      *

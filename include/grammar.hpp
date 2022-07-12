@@ -22,11 +22,11 @@ namespace gracli {
  * containers
  */
 class Grammar {
-
+  
   public:
     using Symbol     = u_int32_t;
     using Rule       = std::vector<Symbol>;
-    using RawGrammar = grammar_coding::RawVec<grammar_coding::RawVec<uint32_t>>;
+    using RawGrammar = coding::RawVec<coding::RawVec<uint32_t>>;
 
   private:
     /**
@@ -66,8 +66,6 @@ class Grammar {
 
     static Grammar from_file(char *file_path) {
 
-        using grammar_coding::RawVec;
-
         std::fstream file(file_path, std::ios::in | std::ios::binary);
         if (!file.is_open()) {
             std::cout << "File not found \"" << file_path << "\"" << std::endl;
@@ -78,9 +76,9 @@ class Grammar {
         std::vector<u_int8_t> buf(std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{});
         file.close();
 
-        RawGrammar raw = *grammar_coding::from_bytes(&*buf.cbegin(), buf.size(), grammar_coding::Coder::GrammarTuple);
+        RawGrammar raw = *from_bytes(&*buf.cbegin(), buf.size(), coding::Coder::GrammarTuple);
 
-        std::vector<RawVec<u_int32_t>> raw_rules(raw.ptr, raw.ptr + raw.len);
+        std::vector<coding::RawVec<u_int32_t>> raw_rules(raw.ptr, raw.ptr + raw.len);
 
         std::vector<std::vector<u_int32_t>> rules;
         rules.reserve(raw.len);
@@ -101,7 +99,7 @@ class Grammar {
      * @param file_path The output file
      */
     void encode_to_file(std::string file_path) {
-        using grammar_coding::RawVec;
+        using coding::RawVec;
         dependency_renumber();
 
         uint8_t *ptr = (uint8_t *) file_path.data();
@@ -124,11 +122,11 @@ class Grammar {
         raw_grammar.ptr = raw_rules.data();
         raw_grammar.len = raw_rules.size();
 
-        grammar_coding::to_file(raw_grammar, ptr, len, grammar_coding::Coder::GrammarTuple);
+        coding::to_file(raw_grammar, ptr, len, coding::Coder::GrammarTuple);
     }
 
     std::string encode_to_string() {
-        using grammar_coding::RawVec;
+        using coding::RawVec;
         dependency_renumber();
 
         std::vector<RawVec<uint32_t>> raw_rules;
@@ -148,7 +146,7 @@ class Grammar {
         raw_grammar.ptr = raw_rules.data();
         raw_grammar.len = raw_rules.size();
 
-        RawVec<uint8_t> raw = *grammar_coding::to_bytes(raw_grammar, grammar_coding::Coder::GrammarTuple);
+        RawVec<uint8_t> raw = *to_bytes(raw_grammar, coding::Coder::GrammarTuple);
 
         std::string s((char *) raw.ptr, raw.len);
 
@@ -326,14 +324,14 @@ class Grammar {
      *
      * @return const size_t The id of the start rule
      */
-    const size_t start_rule_id() const { return m_start_rule_id; }
+    const inline size_t start_rule_id() const { return m_start_rule_id; }
 
     /**
      * @brief Set the start rule id
      *
      * @param i The id the start rule id should be set to
      */
-    void set_start_rule_id(size_t i) { m_start_rule_id = i; }
+    inline void set_start_rule_id(size_t i) { m_start_rule_id = i; }
 
     /**
      * @brief Calculates the size of the grammar
@@ -355,7 +353,7 @@ class Grammar {
      *
      * @return const size_t The rule count
      */
-    const size_t rule_count() const { return m_rules.size(); }
+    const inline size_t rule_count() const { return m_rules.size(); }
 
     /**
      * @brief Checks whether this grammar contains the rule with the given id
@@ -364,7 +362,7 @@ class Grammar {
      * @return true If the grammar contains the rule with the given id
      * @return false If the grammar does not contain the rule with the given id
      */
-    const bool contains_rule(size_t id) const { return m_rules.size() < id && !m_rules[id].empty(); }
+    const inline bool contains_rule(size_t id) const { return m_rules.size() < id && !m_rules[id].empty(); }
 
     /**
      * @brief Checks whether the grammar is empty
@@ -372,7 +370,7 @@ class Grammar {
      * @return true If the grammar contains no rules
      * @return false If the grammar contains rules
      */
-    const bool empty() const { return rule_count() == 0; }
+    const inline bool empty() const { return rule_count() == 0; }
 
     /**
      * @brief Checks whether a symbol is a terminal.
@@ -385,7 +383,7 @@ class Grammar {
      * @return true If the symbol is in the extended ASCII range
      * @return false If the symbol is not in the extended ASCII range
      */
-    static const bool is_terminal(size_t symbol) { return symbol < RULE_OFFSET; }
+    static const inline bool is_terminal(size_t symbol) { return symbol < RULE_OFFSET; }
 
     /**
      * @brief Checks whether a symbol is a non-terminal.
@@ -399,9 +397,9 @@ class Grammar {
      * @return true If the symbol outside the extended ASCII range
      * @return false If the symbol is in the extended ASCII range
      */
-    static const bool is_non_terminal(size_t symbol) { return !is_terminal(symbol); }
+    static const inline bool is_non_terminal(size_t symbol) { return !is_terminal(symbol); }
 
-    static std::vector<Rule> consume(Grammar &&gr) {
+    static inline std::vector<Rule> consume(Grammar &&gr) {
         std::vector<Rule> new_vec(0);
         std::swap(gr.m_rules, new_vec);
         return new_vec;
