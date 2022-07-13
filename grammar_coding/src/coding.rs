@@ -1,14 +1,13 @@
 use std::slice;
 
-use crate::{util::RawVec, grammar_tuple, didactic};
-
+use crate::{didactic, grammar_tuple, util::RawVec};
 
 #[repr(u32)]
 #[derive(Clone, Copy)]
 #[non_exhaustive]
 pub enum Coder {
     Didactic,
-    GrammarTuple
+    GrammarTuple,
 }
 
 type RawGrammar = RawVec<RawVec<u32>>;
@@ -26,14 +25,14 @@ type RawGrammar = RawVec<RawVec<u32>>;
 /// bytes depict a valid encoded grammar.
 ///
 #[no_mangle]
-pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> *mut RawGrammar
-{
+pub unsafe extern "C" fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> *mut RawGrammar {
     let slice = slice::from_raw_parts(ptr, len);
     let rules: Vec<Vec<u32>> = match coder {
         Coder::Didactic => unimplemented!("Didactic coder does not decode"),
         Coder::GrammarTuple => grammar_tuple::decode(slice),
-        _ => unimplemented!("Coder unimplemented")
-    }.expect("Error decoding Grammar");
+        _ => unimplemented!("Coder unimplemented"),
+    }
+    .expect("Error decoding Grammar");
 
     let mut rules = rules
         .into_iter()
@@ -51,8 +50,7 @@ pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> *mu
     std::mem::forget(rules);
 
     let raw_v = Box::new(RawVec { ptr, len });
-    let raw_v_ptr = Box::into_raw(raw_v);
-    raw_v_ptr
+    Box::into_raw(raw_v)
 }
 
 /// This function takes a grammar in raw vec form and encodes it to a vector of bytes.
@@ -68,21 +66,21 @@ pub unsafe extern fn from_bytes(ptr: *const u8, len: usize, coder: Coder) -> *mu
 /// the vecs describe a valid grammar.
 ///
 #[no_mangle]
-pub unsafe extern fn to_bytes(grammar: RawGrammar, coder: Coder) -> *mut RawVec<u8> {
+pub unsafe extern "C" fn to_bytes(grammar: RawGrammar, coder: Coder) -> *mut RawVec<u8> {
     let mut s = Vec::<u8>::new();
     match coder {
         Coder::Didactic => didactic::encode(&grammar, &mut s),
         Coder::GrammarTuple => grammar_tuple::encode(&grammar, &mut s),
-        _ => unimplemented!("Coder unimplemented")
-    }.expect("Error encoding grammar to string");
+        _ => unimplemented!("Coder unimplemented"),
+    }
+    .expect("Error encoding grammar to string");
     s.shrink_to_fit();
     let ptr = s.as_mut_ptr();
     let len = s.len();
     std::mem::forget(s);
 
-    let raw_v  = Box::new(RawVec { ptr, len });
-    let raw_v_ptr = Box::into_raw(raw_v);
-    raw_v_ptr
+    let raw_v = Box::new(RawVec { ptr, len });
+    Box::into_raw(raw_v)
 }
 
 /// Encodes a grammar and writes the contents to a file.
@@ -101,7 +99,7 @@ pub unsafe extern fn to_bytes(grammar: RawGrammar, coder: Coder) -> *mut RawVec<
 /// utf8 string.
 ///
 #[no_mangle]
-pub unsafe extern fn to_file(grammar: RawGrammar, ptr: *const u8, len: usize, coder: Coder) {
+pub unsafe extern "C" fn to_file(grammar: RawGrammar, ptr: *const u8, len: usize, coder: Coder) {
     let file_name_bytes = slice::from_raw_parts(ptr as *mut u8, len);
     let file_name = String::from_utf8_lossy(file_name_bytes);
 
@@ -110,6 +108,7 @@ pub unsafe extern fn to_file(grammar: RawGrammar, ptr: *const u8, len: usize, co
     match coder {
         Coder::Didactic => didactic::encode(&grammar, file),
         Coder::GrammarTuple => grammar_tuple::encode(&grammar, file),
-        _ => unimplemented!("Coder unimplemented")
-    }.expect("Error decoding Grammar")
+        _ => unimplemented!("Coder unimplemented"),
+    }
+    .expect("Error decoding Grammar")
 }

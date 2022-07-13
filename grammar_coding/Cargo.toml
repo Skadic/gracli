@@ -1,6 +1,6 @@
 [package]
 name = "grammar_coding"
-author = "Etienne Palanga"
+authors = [ "Etienne Palanga" ]
 version = "0.1.0"
 edition = "2021"
 

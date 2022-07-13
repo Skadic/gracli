@@ -2,7 +2,6 @@ use crate::{consts::RULE_OFFSET, util::RawVec};
 use bitstream_io::{BigEndian, BitRead, BitReader, BitWrite, BitWriter};
 use std::io::Read;
 
-
 pub fn decode(input: impl Read) -> Result<Vec<Vec<u32>>, std::io::Error> {
     let mut bit_reader = BitReader::endian(input, BigEndian);
 

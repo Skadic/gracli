@@ -35,7 +35,7 @@ pub struct RawArgs {
     file: *mut c_char,
     //interactive: bool,
     decode: bool,
-    validate: isize, 
+    validate: isize,
 }
 
 impl From<ArgsInternal> for RawArgs {
@@ -48,7 +48,7 @@ impl From<ArgsInternal> for RawArgs {
             file: raw_file,
             //interactive: int.interactive,
             decode: int.decode,
-            validate: int.validate.map(|v| v as isize).unwrap_or(-1), 
+            validate: int.validate.map(|v| v as isize).unwrap_or(-1),
         }
     }
 }
@@ -56,14 +56,13 @@ impl From<ArgsInternal> for RawArgs {
 #[no_mangle]
 pub extern "C" fn parse_args() -> *const RawArgs {
     let args = Box::<RawArgs>::new(ArgsInternal::parse().into());
-    let arg_ptr = Box::into_raw(args);
-    arg_ptr
+    Box::into_raw(args)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn dealloc_raw_args(raw_args: *mut RawArgs) {
     if raw_args.is_null() {
-        return
+        return;
     }
 
     // When this goes out of scope, the heap memory is deallocated
