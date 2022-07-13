@@ -7,8 +7,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=gnu++20 ${GCC_WARNINGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb -lprofiler")
 
-# executable
-add_executable(gracli src/main.cpp)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
@@ -19,20 +17,28 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E echo "Copied compile_commands.json into root folder"
 )
 
-# enable corrosion
+# Add submodules
 add_subdirectory(external/corrosion)
-
-# include directory
-target_include_directories(gracli PUBLIC include)
-
-
-
-# dependencies
-# -- word-packing --
 add_subdirectory(external/word-packing)
-target_include_directories(gracli PUBLIC external/word-packing/include)
+add_subdirectory(external/googletest)
 
-# -- rust --
+# Add rust soruces
 corrosion_import_crate(MANIFEST_PATH grammar_coding/Cargo.toml)
-target_link_libraries(gracli PUBLIC grammar_coding)
-target_include_directories(gracli PUBLIC grammar_coding/include)
+
+
+# -- library --
+add_library(libgracli INTERFACE)
+# include dir
+target_include_directories(libgracli INTERFACE include)
+# word-packing
+target_include_directories(libgracli INTERFACE external/word-packing/include)
+# rust
+target_link_libraries(libgracli INTERFACE grammar_coding)
+target_include_directories(libgracli INTERFACE grammar_coding/include)
+
+# -- executable --
+add_executable(gracli src/main.cpp)
+target_link_libraries(gracli libgracli)
+
+# -- tests --
+add_subdirectory(test EXCLUDE_FROM_ALL)

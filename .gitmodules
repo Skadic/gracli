@@ -4,3 +4,6 @@
 [submodule "external/corrosion"]
 	path = external/corrosion
 	url = https://github.com/corrosion-rs/corrosion.git
+[submodule "external/googletest"]
+	path = external/googletest
+	url = https://github.com/google/googletest/
