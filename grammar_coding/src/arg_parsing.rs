@@ -3,6 +3,7 @@ use std::ffi::CString;
 use clap::Parser;
 use libc::c_char;
 
+// TODO Add ability to read the source string from a file for validation
 #[derive(Parser, Debug)]
 #[clap(name = "gracli", author, version, about, long_about = None)]
 struct ArgsInternal {
@@ -25,7 +26,7 @@ struct ArgsInternal {
     #[clap(
         short,
         long,
-        help = "Runs a given number of random accesses on the input grammar to test and compares it against substring queries on the source string."
+        help = "Gets all n-substrings out of the string and checks if they match up to the source string."
     )]
     validate: Option<usize>,
 }
@@ -35,7 +36,7 @@ pub struct RawArgs {
     file: *mut c_char,
     //interactive: bool,
     decode: bool,
-    validate: isize,
+    validate: usize,
 }
 
 impl From<ArgsInternal> for RawArgs {
@@ -48,7 +49,7 @@ impl From<ArgsInternal> for RawArgs {
             file: raw_file,
             //interactive: int.interactive,
             decode: int.decode,
-            validate: int.validate.map(|v| v as isize).unwrap_or(-1),
+            validate: int.validate.unwrap_or(0),
         }
     }
 }

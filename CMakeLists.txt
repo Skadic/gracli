@@ -17,6 +17,8 @@ add_custom_target(
   COMMAND ${CMAKE_COMMAND} -E echo "Copied compile_commands.json into root folder"
 )
 
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+
 # Add submodules
 add_subdirectory(external/corrosion)
 add_subdirectory(external/word-packing)
