@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdint>
 #include <queue>
 #include <ranges>
 
@@ -446,17 +447,17 @@ class SampledScanQueryGrammar {
      * @brief Writes the expansion of the rule with the given id to the stringstream in reverse.
      * This respects the range substr_start and substr_end and only writes characters inside that range
      */
-    void write_expansion_reverse(const size_t        id,
-                                 size_t             &source_index,
-                                 const size_t        substr_start,
-                                 const size_t        substr_end,
-                                 std::ostringstream &oss) const {
+    void write_expansion_reverse(const size_t       id,
+                                 size_t            &source_index,
+                                 const size_t       substr_start,
+                                 const size_t       substr_end,
+                                 std::vector<char> &char_stack) const {
         auto &symbols = m_rules[id];
 
         for (auto symbol : std::views::reverse(symbols)) {
             if (Grammar::is_terminal(symbol)) {
                 if (source_index < substr_end) {
-                    oss << (char) symbol;
+                    char_stack.push_back((char) symbol);
                 }
                 source_index--;
                 continue;
@@ -465,7 +466,7 @@ class SampledScanQueryGrammar {
             auto rule_len          = rule_length(symbol - RULE_OFFSET);
             auto rule_source_index = source_index - rule_len + 1;
             if (rule_source_index < substr_end) {
-                write_expansion_reverse(symbol - RULE_OFFSET, source_index, substr_start, substr_end, oss);
+                write_expansion_reverse(symbol - RULE_OFFSET, source_index, substr_start, substr_end, char_stack);
             } else {
                 source_index -= rule_len;
             }
@@ -480,9 +481,12 @@ class SampledScanQueryGrammar {
      * @return std::string The intersection of the substring and the part of the block before (and not including) the
      * sampled position
      */
-    std::string scan_left(size_t substr_start, size_t substr_end) const {
-        const auto         sample_idx = substr_start / sampling;
-        const QuerySample &sample     = m_samples[sample_idx];
+    void scan_left(size_t substr_start, size_t substr_end, std::ostringstream &oss) const {
+        static std::vector<char> char_stack;
+        char_stack.clear();
+
+        const auto        sample_idx = substr_start / sampling;
+        const QuerySample sample     = m_samples[sample_idx];
 
         size_t rule           = sample.lowest_interval_containing_block;
         size_t internal_index = sample.internal_index_of_first_in_block - 1;
@@ -491,10 +495,8 @@ class SampledScanQueryGrammar {
         if (substr_start > source_index || substr_end <= substr_start || sample.relative_index_in_block == 0) {
             // Since the left part of the block is the part up to and not including the sampled position, we have
             // nothing to return if the sampled position
-            return "";
+            return;
         }
-
-        std::ostringstream oss;
 
         while (source_index >= substr_start) {
             auto symbol              = m_rules[rule][internal_index];
@@ -508,10 +510,10 @@ class SampledScanQueryGrammar {
             } else if (substr_start <= symbol_source_index) {
                 // In this case the symbol starts before (or at) the start of the pattern
                 if (Grammar::is_terminal(symbol)) {
-                    oss << (char) symbol;
+                    char_stack.push_back((char) symbol);
                     source_index--;
                 } else {
-                    write_expansion_reverse(symbol - RULE_OFFSET, source_index, substr_start, substr_end, oss);
+                    write_expansion_reverse(symbol - RULE_OFFSET, source_index, substr_start, substr_end, char_stack);
                     // Write reverse handles modifying the source_index
                 }
                 internal_index--;
@@ -522,9 +524,10 @@ class SampledScanQueryGrammar {
             }
         }
 
-        std::string out = oss.str();
-        std::ranges::reverse(out.begin(), out.end());
-        return out;
+        for (auto it = char_stack.rbegin(); it < char_stack.rend(); it++) {
+            oss << *it;
+        }
+        char_stack.clear();
     }
 
     /**
@@ -566,9 +569,9 @@ class SampledScanQueryGrammar {
      * @param substr_end The end of the substring (exclusive)
      * @return std::string The intersection of the substring and the part of the block after the sampled position
      */
-    std::string scan_right(size_t substr_start, size_t substr_end) const {
-        const auto         sample_idx = substr_start / sampling;
-        const QuerySample &sample     = m_samples[sample_idx];
+    void scan_right(size_t substr_start, size_t substr_end, std::ostringstream &oss) const {
+        const auto        sample_idx = substr_start / sampling;
+        const QuerySample sample     = m_samples[sample_idx];
 
         // Get the sampled data in this block
         size_t rule           = sample.lowest_interval_containing_block;
@@ -578,10 +581,8 @@ class SampledScanQueryGrammar {
         if (substr_end <= source_index || substr_end <= substr_start) {
             // Since the right part of the block is the part up to and not including the sampled position, we have
             // nothing to return if the sampled position
-            return "";
+            return;
         }
-
-        std::ostringstream oss;
 
         while (source_index < substr_end) {
             auto symbol     = m_rules[rule][internal_index];
@@ -608,8 +609,6 @@ class SampledScanQueryGrammar {
                 internal_index = 0;
             }
         }
-
-        return oss.str();
     }
 
   public:
@@ -636,7 +635,7 @@ class SampledScanQueryGrammar {
         // The index of the sample in which the (inclusive) end index lies
         const auto end_sample_idx = (substr_end - 1) / sampling;
 
-        std::stringstream ss;
+        std::ostringstream oss;
 
         // Since scan_left and scan_right only work for start- and end-indices which lie in the same block, we call this
         // method once for each block the substring spans over
@@ -648,16 +647,16 @@ class SampledScanQueryGrammar {
                 // subtract this offset into the block so that the length fits
                 const auto len = std::min(sampling - (start_idx - i * sampling), substr_end - start_idx);
 
-                ss << substr(start_idx, len);
+                oss << substr(start_idx, len);
             }
-            return ss.str();
+            return oss.str();
         }
 
         // get the left and right halves and put them together
-        ss << scan_left(substr_start, substr_end);
-        ss << scan_right(substr_start, substr_end);
+        scan_left(substr_start, substr_end, oss);
+        scan_right(substr_start, substr_end, oss);
 
-        return ss.str();
+        return oss.str();
     }
 };
 
