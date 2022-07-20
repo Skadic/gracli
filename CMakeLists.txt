@@ -5,6 +5,7 @@ project(gracli)
 set(CXX_STANDARD c++20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=gnu++20 ${GCC_WARNINGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb -lprofiler")
 
 
@@ -24,8 +25,16 @@ add_subdirectory(external/corrosion)
 add_subdirectory(external/word-packing)
 add_subdirectory(external/googletest)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(RUST_PROFILE "debug")
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  set(RUST_PROFILE "release-with-debuginfo")
+else()
+  set(RUST_PROFILE "release")
+endif()
+
 # Add rust soruces
-corrosion_import_crate(MANIFEST_PATH grammar_coding/Cargo.toml)
+corrosion_import_crate(MANIFEST_PATH grammar_coding/Cargo.toml PROFILE ${RUST_PROFILE})
 
 
 # -- library --

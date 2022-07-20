@@ -17,3 +17,7 @@ cbindgen = "0.24.3" # MPL 2.0
 [lib]
 name = "grammar_coding"
 crate-type = ["staticlib"]
+
+[profile.release-with-debuginfo]
+inherits = "release"
+debug = true
