@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <queue>
 #include <ranges>
@@ -611,23 +612,13 @@ class SampledScanQueryGrammar {
         }
     }
 
-  public:
-    /**
-     * @brief Gets the substring from a start to an end index in the source string.
-     *
-     * @param substr_start The inclusive start index.
-     * @param substr_len The length of the substring to extract.
-     *
-     * @return The substring in the given interval.
-     */
-    std::string substr(size_t substr_start, size_t substr_len) const {
-
+    void substr_internal(size_t substr_start, size_t substr_len, std::ostringstream &oss) const {
         // Exclusive end index
         const auto substr_end = std::min(substr_start + substr_len, (size_t) m_start_rule_full_length);
 
         if (substr_end == 0) {
             // So that substr_end - 1 doesn't break everything
-            return "";
+            return;
         }
 
         // The index of the sample in which the start index lies
@@ -635,7 +626,6 @@ class SampledScanQueryGrammar {
         // The index of the sample in which the (inclusive) end index lies
         const auto end_sample_idx = (substr_end - 1) / sampling;
 
-        std::ostringstream oss;
 
         // Since scan_left and scan_right only work for start- and end-indices which lie in the same block, we call this
         // method once for each block the substring spans over
@@ -647,15 +637,28 @@ class SampledScanQueryGrammar {
                 // subtract this offset into the block so that the length fits
                 const auto len = std::min(sampling - (start_idx - i * sampling), substr_end - start_idx);
 
-                oss << substr(start_idx, len);
+                substr_internal(start_idx, len, oss);
             }
-            return oss.str();
+            return;
         }
 
         // get the left and right halves and put them together
         scan_left(substr_start, substr_end, oss);
         scan_right(substr_start, substr_end, oss);
+    }
 
+  public:
+    /**
+     * @brief Gets the substring from a start to an end index in the source string.
+     *
+     * @param substr_start The inclusive start index.
+     * @param substr_len The length of the substring to extract.
+     *
+     * @return The substring in the given interval.
+     */
+    std::string substr(size_t substr_start, size_t substr_len) const {
+        std::ostringstream oss;
+        substr_internal(substr_start, substr_len, oss);
         return oss.str();
     }
 };

@@ -3,32 +3,64 @@ use std::ffi::CString;
 use clap::Parser;
 use libc::c_char;
 
+
+
 // TODO Add ability to read the source string from a file for validation
 #[derive(Parser, Debug)]
 #[clap(name = "gracli", author, version, about, long_about = None)]
 struct ArgsInternal {
-    #[clap(short, long, help = "The input file", required = true)]
+    #[clap(short, long, help = "The input file", value_name("PATH"), required = true)]
+
     file: String,
-    /*#[clap(
-        short,
-        long,
-        parse(from_flag),
-        help = "Starts gracli in interactive mode which allows multiple accesses to a grammar compressed file (unimplemented)"
-    )]*/
-    interactive: bool,
     #[clap(
         short,
         long,
         parse(from_flag),
+        group("action"),
         help = "Decodes an encoded grammar file and outputs the resulting string to stdout (default behavior)"
     )]
     decode: bool,
     #[clap(
-        short,
+        short('r'),
         long,
-        help = "Gets all n-substrings out of the string and checks if they match up to the source string."
+        group("action"),
+        value_name("NUM_QUERIES"),
+        help = "Benchmarks runtime of a Grammar's random access queries. Value is the number of queries."
     )]
-    validate: Option<usize>,
+    benchmark_random_access: Option<usize>,
+    #[clap(
+        short('s'),
+        long,
+        group("action"),
+        value_name("NUM_QUERIES"),
+        help = "Benchmarks runtime of a Grammar's substring queries. Value is the number of queries."
+    )]
+    benchmark_substring: Option<usize>,
+    #[clap(
+        short('l'),
+        long,
+        value_name("LENGTH"),
+        help = "Length of the substrings while benchmarking substring queries."
+    )]
+    substring_length: Option<usize>,
+    #[clap(
+        short('g'),
+        long,
+        arg_enum,
+        default_value("sampled-scan6400"),
+        value_name("GRAMMAR_TYPE"),
+        help = "The Grammar Access Data Structure to use"
+    )]
+    grammar_type: GrammarType,
+}
+
+#[repr(C)]
+#[derive(clap::ArgEnum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GrammarType {
+    Naive,
+    SampledScan512,
+    SampledScan6400,
+    SampledScan12800,
 }
 
 #[repr(C)]
@@ -36,7 +68,10 @@ pub struct RawArgs {
     file: *mut c_char,
     //interactive: bool,
     decode: bool,
-    validate: usize,
+    benchmark_random_access: usize,
+    benchmark_substring: usize,
+    substring_length: usize,
+    grammar_type: GrammarType
 }
 
 impl From<ArgsInternal> for RawArgs {
@@ -49,7 +84,10 @@ impl From<ArgsInternal> for RawArgs {
             file: raw_file,
             //interactive: int.interactive,
             decode: int.decode,
-            validate: int.validate.unwrap_or(0),
+            benchmark_random_access: int.benchmark_random_access.unwrap_or(0),
+            benchmark_substring: int.benchmark_substring.unwrap_or(0),
+            substring_length: int.substring_length.unwrap_or(0),
+            grammar_type: int.grammar_type,
         }
     }
 }
