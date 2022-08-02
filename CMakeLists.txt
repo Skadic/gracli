@@ -24,6 +24,7 @@ message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 add_subdirectory(external/corrosion)
 add_subdirectory(external/word-packing)
 add_subdirectory(external/googletest)
+add_subdirectory(external/tlx)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(RUST_PROFILE "debug")
@@ -43,6 +44,9 @@ add_library(libgracli INTERFACE)
 target_include_directories(libgracli INTERFACE include)
 # word-packing
 target_include_directories(libgracli INTERFACE external/word-packing/include)
+# tlx
+target_include_directories(libgracli INTERFACE external/tlx/tlx)
+target_link_libraries(libgracli INTERFACE tlx)
 # rust
 target_link_libraries(libgracli INTERFACE grammar_coding)
 target_include_directories(libgracli INTERFACE grammar_coding/include)
