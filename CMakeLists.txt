@@ -21,22 +21,9 @@ add_custom_target(
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
 # Add submodules
-add_subdirectory(external/corrosion)
 add_subdirectory(external/word-packing)
 add_subdirectory(external/googletest)
 add_subdirectory(external/tlx)
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(RUST_PROFILE "debug")
-elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-  set(RUST_PROFILE "release-with-debuginfo")
-else()
-  set(RUST_PROFILE "release")
-endif()
-
-# Add rust soruces
-corrosion_import_crate(MANIFEST_PATH grammar_coding/Cargo.toml PROFILE ${RUST_PROFILE})
-
 
 # -- library --
 add_library(libgracli INTERFACE)
@@ -47,9 +34,6 @@ target_include_directories(libgracli INTERFACE external/word-packing/include)
 # tlx
 target_include_directories(libgracli INTERFACE external/tlx/tlx)
 target_link_libraries(libgracli INTERFACE tlx)
-# rust
-target_link_libraries(libgracli INTERFACE grammar_coding)
-target_include_directories(libgracli INTERFACE grammar_coding/include)
 
 # -- executable --
 add_executable(gracli src/main.cpp)

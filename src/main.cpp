@@ -1,15 +1,22 @@
 
 
+#include "bit_reader.hpp"
 #include "cmdline_parser.hpp"
-#include "grammar_coding.hpp"
 #include "naive_query_grammar.hpp"
 #include "sampled_scan_query_grammar.hpp"
+#include "grammar_tuple_coder.hpp"
+#include <array>
 #include <chrono>
 #include <concepts.hpp>
+#include <cstdint>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <grammar.hpp>
 #include <iostream>
+#include <ostream>
+
+using std::istringstream;
 
 using namespace gracli;
 
@@ -112,6 +119,7 @@ enum class GrammarType : uint8_t {
 };
 
 int main(int argc, char **argv) {
+
     tlx::CmdlineParser cp;
 
     cp.set_author("Etienne Palanga");

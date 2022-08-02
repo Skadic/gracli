@@ -15,7 +15,7 @@ class NaiveQueryGrammar {
     using Pack = uint64_t;
 
   public:
-    using Symbols = std::vector<uint32_t>;
+    using Symbols = word_packing::PackedIntVector<Pack>;
 
   private:
     /**

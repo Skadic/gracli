@@ -18,7 +18,7 @@ class SampledScanQueryGrammar {
     using Pack = uint64_t;
 
   public:
-    using Symbols = std::vector<uint32_t>;
+    using Symbols = word_packing::PackedIntVector<Pack>;
 
   private:
     /**
@@ -455,7 +455,8 @@ class SampledScanQueryGrammar {
                                  std::vector<char> &char_stack) const {
         auto &symbols = m_rules[id];
 
-        for (auto symbol : std::views::reverse(symbols)) {
+        for (int i = symbols.size() - 1; i >= 0; i--) {
+            auto symbol = symbols[i];
             if (Grammar::is_terminal(symbol)) {
                 if (source_index < substr_end) {
                     char_stack.push_back((char) symbol);

@@ -10,10 +10,10 @@
 #include <sys/types.h>
 #include <vector>
 
-#include <consts.hpp>
-#include <grammar_coding.hpp>
-#include <util.hpp>
-#include <word_packing.hpp>
+#include "consts.hpp"
+#include "util.hpp"
+#include "../external/word-packing/include/word_packing.hpp"
+#include "grammar_tuple_coder.hpp"
 
 namespace gracli {
 
@@ -22,11 +22,10 @@ namespace gracli {
  * containers
  */
 class Grammar {
-  
+
   public:
     using Symbol     = u_int32_t;
-    using Rule       = std::vector<Symbol>;
-    using RawGrammar = coding::RawVec<coding::RawVec<uint32_t>>;
+    using Rule       = word_packing::PackedIntVector<uint64_t>;
 
   private:
     /**
@@ -56,102 +55,19 @@ class Grammar {
      */
     Grammar(Symbol capacity) : m_rules{std::vector<Rule>(capacity, Rule())}, m_start_rule_id{0} {}
 
+    Grammar(std::vector<Rule> &&rules, size_t start_rule_id) : m_rules{rules}, m_start_rule_id{start_rule_id} {}
+
     /**
      * @brief Reads the grammar from a file.
      *
      * @param file_path The input file
      * @return The grammar
      */
-    static Grammar from_file(std::string file_path) { return from_file(file_path.data()); }
-
-    static Grammar from_file(char *file_path) {
-
-        std::fstream file(file_path, std::ios::in | std::ios::binary);
-        if (!file.is_open()) {
-            std::cout << "File not found \"" << file_path << "\"" << std::endl;
-            return Grammar(0);
-        }
-
-        // Read all bytes from the file
-        std::vector<u_int8_t> buf(std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{});
-        file.close();
-
-        RawGrammar raw = *from_bytes(&*buf.cbegin(), buf.size(), coding::Coder::GrammarTuple);
-
-        std::vector<coding::RawVec<u_int32_t>> raw_rules(raw.ptr, raw.ptr + raw.len);
-
-        std::vector<std::vector<u_int32_t>> rules;
-        rules.reserve(raw.len);
-
-        for (auto raw_rule : raw_rules) {
-            rules.push_back(std::vector(raw_rule.ptr, raw_rule.ptr + raw_rule.len));
-        }
-        Grammar gr(0);
-
-        gr.m_start_rule_id = rules.size() - 1;
-        gr.m_rules         = std::move(rules);
-        return gr;
-    }
-
-    /**
-     * @brief Encodes the grammar and writes it to a file.
-     *
-     * @param file_path The output file
-     */
-    void encode_to_file(std::string file_path) {
-        using coding::RawVec;
-        dependency_renumber();
-
-        uint8_t *ptr = (uint8_t *) file_path.data();
-        size_t   len = file_path.length();
-
-        std::vector<RawVec<uint32_t>> raw_rules;
-        raw_rules.reserve(m_rules.size());
-
-        for (auto i = 0; i < m_rules.size(); i++) {
-            auto &rule = m_rules[i];
-
-            RawVec<uint32_t> raw;
-            raw.ptr = rule.data();
-            raw.len = rule.size();
-
-            raw_rules.push_back(raw);
-        }
-
-        RawGrammar raw_grammar;
-        raw_grammar.ptr = raw_rules.data();
-        raw_grammar.len = raw_rules.size();
-
-        coding::to_file(raw_grammar, ptr, len, coding::Coder::GrammarTuple);
-    }
-
-    std::string encode_to_string() {
-        using coding::RawVec;
-        dependency_renumber();
-
-        std::vector<RawVec<uint32_t>> raw_rules;
-        raw_rules.reserve(m_rules.size());
-
-        for (auto i = 0; i < m_rules.size(); i++) {
-            auto &rule = m_rules[i];
-
-            RawVec<uint32_t> raw;
-            raw.ptr = rule.data();
-            raw.len = rule.size();
-
-            raw_rules.push_back(raw);
-        }
-
-        RawGrammar raw_grammar;
-        raw_grammar.ptr = raw_rules.data();
-        raw_grammar.len = raw_rules.size();
-
-        RawVec<uint8_t> raw = *to_bytes(raw_grammar, coding::Coder::GrammarTuple);
-
-        std::string s((char *) raw.ptr, raw.len);
-
-        return s;
-    }
+    static Grammar from_file(std::string file_path) {
+        auto rules = GrammarTupleCoder::decode(file_path);
+        auto n = rules.size();
+        return Grammar(std::move(rules), n - 1);
+}
 
     /**
      * @brief Accesses the symbols vector for the rule of the given id

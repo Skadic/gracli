@@ -14,6 +14,6 @@ TEST_P(SampledScanQGTestFixture, SubstringTest) {
 
 INSTANTIATE_TEST_SUITE_P(SampledScanQGTests,
                          SampledScanQGTestFixture,
-                         ::testing::Values(QueryGrammarTestInput("english_5MB.seq",
+                         ::testing::Values(QueryGrammarTestInput("dblp.seq",
                                                      25) // TestInput("dblp.seq", 25), TestInput( "dna.seq", 25 )
                                            ));
