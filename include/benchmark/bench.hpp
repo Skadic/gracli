@@ -7,7 +7,7 @@
 
 #include "../concepts.hpp"
 #include "../grammar.hpp"
-#include "malloc_count.h"
+#include <malloc_count.h>
 
 namespace gracli {
 
