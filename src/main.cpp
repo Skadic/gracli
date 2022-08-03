@@ -1,115 +1,12 @@
 
 
-#include "bit_reader.hpp"
-#include "cmdline_parser.hpp"
-#include "naive_query_grammar.hpp"
-#include "sampled_scan_query_grammar.hpp"
-#include "grammar_tuple_coder.hpp"
-#include <array>
-#include <chrono>
-#include <concepts.hpp>
+
 #include <cstdint>
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
-#include <grammar.hpp>
-#include <iostream>
-#include <ostream>
 
-using std::istringstream;
-
-using namespace gracli;
-
-template<gracli::Queryable Grm>
-void benchmark_random_access(std::string &file, size_t num_queries, std::string name) {
-    srand(time(nullptr));
-
-    Grammar gr = Grammar::from_file(file);
-    auto    n  = gr.reproduce().length();
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
-    Grm qgr(std::move(gr));
-
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-    auto constr_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    begin    = std::chrono::steady_clock::now();
-    size_t c = 0;
-    for (size_t i = 0; i < num_queries; i++) {
-        auto accessed = qgr.at(rand() % n);
-        c += accessed;
-    }
-    end                   = std::chrono::steady_clock::now();
-    auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    std::cout << "RESULT"
-              << " ds=" << name << " input_file=" << file << " input_size=" << n
-              << " num_queries=" << num_queries << " constr_time=" << constr_time
-              << " query_time_total=" << query_time_total;
-}
-
-template<gracli::Queryable Grm>
-void benchmark_substring(std::string file, size_t num_queries, size_t length, std::string name) {
-    srand(time(nullptr));
-
-    Grammar gr = Grammar::from_file(file);
-    auto    n  = gr.reproduce().length();
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
-    Grm qgr(std::move(gr));
-
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-    auto constr_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    begin    = std::chrono::steady_clock::now();
-    size_t c = 0;
-    for (size_t i = 0; i < num_queries; i++) {
-        std::string accessed = qgr.substr(rand() % n, length);
-        c += accessed.length();
-    }
-    end                   = std::chrono::steady_clock::now();
-    auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    std::cout << "RESULT"
-              << " ds=" << name << " input_file=" << file << " input_size=" << n
-              << " num_queries=" << num_queries << " substring_length=" << length
-              << " constr_time=" << constr_time << " query_time_total=" << query_time_total;
-}
-
-template<gracli::Queryable Grm>
-void benchmark_substring_random(std::string file, size_t num_queries, std::string name) {
-    srand(time(nullptr));
-
-    Grammar gr = Grammar::from_file(file);
-    auto    n  = gr.reproduce().length();
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
-    Grm qgr(std::move(gr));
-
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-    auto constr_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    begin    = std::chrono::steady_clock::now();
-    size_t c = 0;
-    for (size_t i = 0; i < num_queries; i++) {
-        size_t      idx      = rand() % n;
-        std::string accessed = qgr.substr(idx, rand() % (n - idx));
-        c += accessed.length();
-    }
-    end                   = std::chrono::steady_clock::now();
-    auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    std::cout << "RESULT"
-              << " ds=" << name << " input_file=" << file << " input_size=" << n
-              << " num_queries=" << num_queries << " substring_length=" << "0"
-              << " constr_time=" << constr_time << " query_time_total=" << query_time_total;
-}
+#include "cmdline_parser.hpp"
+#include <naive_query_grammar.hpp>
+#include <sampled_scan_query_grammar.hpp>
+#include <benchmark/bench.hpp>
 
 enum class GrammarType : uint8_t {
     Naive,
@@ -176,6 +73,8 @@ int main(int argc, char **argv) {
     }
 
     GrammarType grammar_type = static_cast<GrammarType>(type);
+
+    using namespace gracli;
 
     if (random_access) {
         switch (grammar_type) {
