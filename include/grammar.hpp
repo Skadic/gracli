@@ -11,10 +11,10 @@
 #include <sys/types.h>
 #include <vector>
 
-#include "consts.hpp"
-#include "util.hpp"
 #include "../external/word-packing/include/word_packing.hpp"
+#include "consts.hpp"
 #include "grammar_tuple_coder.hpp"
+#include "util.hpp"
 
 namespace gracli {
 
@@ -25,8 +25,8 @@ namespace gracli {
 class Grammar {
 
   public:
-    using Symbol     = u_int32_t;
-    using Rule       = word_packing::PackedIntVector<uint64_t>;
+    using Symbol = u_int32_t;
+    using Rule   = word_packing::PackedIntVector<uint64_t>;
 
   private:
     /**
@@ -66,9 +66,9 @@ class Grammar {
      */
     static Grammar from_file(std::string file_path) {
         auto rules = GrammarTupleCoder::decode(file_path);
-        auto n = rules.size();
+        auto n     = rules.size();
         return Grammar(std::move(rules), n - 1);
-}
+    }
 
     /**
      * @brief Accesses the symbols vector for the rule of the given id
@@ -193,12 +193,34 @@ class Grammar {
         }
     }
 
+  private:
+    void expand(size_t rule_id, std::ostream &os) {
+        for (auto &symbol : m_rules[rule_id]) {
+            if (is_terminal(symbol)) {
+                os << (char) symbol;
+            } else {
+                expand(symbol - RULE_OFFSET, os);
+            }
+        }
+    }
+
+  public:
+    std::string reproduce() {
+        std::ostringstream oss;
+
+        if (rule_count() == 0) {
+            return "";
+        }
+        expand(m_start_rule_id, oss);
+
+        return oss.str();
+    }
     /**
      * @brief Reproduces this grammar's source string
      *
      * @return std::string The source string
      */
-    std::string reproduce() {
+    std::string reproduce_() {
         dependency_renumber();
 
         // This vector contains a mapping of a rule id (or rather, a nonterminal) to the string representation of the
@@ -289,36 +311,36 @@ class Grammar {
      */
     const inline bool empty() const { return rule_count() == 0; }
 
-        private:
-        const inline size_t source_length(size_t id, std::vector<size_t> lookup) const {
-            std::vector<size_t> rule_lengths;
-            constexpr auto MAX = std::numeric_limits<size_t>().max();
-            rule_lengths.resize(rule_count(), MAX);
+  private:
+    const inline size_t source_length(size_t id, std::vector<size_t> lookup) const {
+        std::vector<size_t> rule_lengths;
+        constexpr auto      MAX = std::numeric_limits<size_t>().max();
+        rule_lengths.resize(rule_count(), MAX);
 
-            size_t count = 0;
+        size_t count = 0;
 
-            for (auto &symbol : m_rules[id]) {
-                if(is_terminal(symbol)) {
-                    count++;
-                } else if (lookup[symbol - RULE_OFFSET] < MAX) {
-                    count += lookup[symbol - RULE_OFFSET];
-                } else {
-                    auto symb_length = source_length();
-                    lookup[symbol - RULE_OFFSET] = symb_length;
-                    count += symb_length;
-                }
+        for (auto &symbol : m_rules[id]) {
+            if (is_terminal(symbol)) {
+                count++;
+            } else if (lookup[symbol - RULE_OFFSET] < MAX) {
+                count += lookup[symbol - RULE_OFFSET];
+            } else {
+                auto symb_length             = source_length();
+                lookup[symbol - RULE_OFFSET] = symb_length;
+                count += symb_length;
             }
-            return count;
         }
+        return count;
+    }
 
-        public:
-        const inline size_t source_length() const {
-            std::vector<size_t> lookup;
-            constexpr auto MAX = std::numeric_limits<size_t>().max();
-            lookup.resize(rule_count(), MAX);
+  public:
+    const inline size_t source_length() const {
+        std::vector<size_t> lookup;
+        constexpr auto      MAX = std::numeric_limits<size_t>().max();
+        lookup.resize(rule_count(), MAX);
 
-            return source_length(m_start_rule_id, lookup);
-        }
+        return source_length(m_start_rule_id, lookup);
+    }
 
     /**
      * @brief Checks whether a symbol is a terminal.
