@@ -1,59 +1,86 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <fstream>
+#include <iostream>
 
 #include "../concepts.hpp"
 #include "../grammar.hpp"
+#include "malloc_count.h"
 
 namespace gracli {
 
 template<Queryable Grm>
 struct QGrammarResult {
-    Grm    gr;
-    size_t source_length;
-    size_t decode_time;
-    size_t constr_time;
+    Grm     gr;
+    size_t  source_length;
+    size_t  decode_time;
+    size_t  constr_time;
+    int64_t decode_space_delta;
+    int64_t constr_space_delta;
 
-    QGrammarResult(Grm &&gr, size_t source_length, size_t decode_time, size_t constr_time) :
+    QGrammarResult(Grm   &&gr,
+                   size_t  source_length,
+                   size_t  decode_time,
+                   size_t  constr_time,
+                   int64_t decode_space_delta,
+                   int64_t constr_space_delta) :
         gr{std::move(gr)},
         source_length{source_length},
         decode_time{decode_time},
-        constr_time{constr_time} {}
+        constr_time{constr_time},
+        decode_space_delta{decode_space_delta},
+        constr_space_delta{constr_space_delta} {}
 };
 
 template<Queryable Grm>
 inline QGrammarResult<Grm> build_query_grammar(std::string &file) {
 
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    Grammar                               gr    = Grammar::from_file(file);
-    std::chrono::steady_clock::time_point end   = std::chrono::steady_clock::now();
-    auto decode_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    std::chrono::steady_clock::time_point begin       = std::chrono::steady_clock::now();
+    int64_t                               space_begin = malloc_count_current();
 
-    auto n = gr.reproduce().length();
+    Grammar gr = Grammar::from_file(file);
 
-    begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point end       = std::chrono::steady_clock::now();
+    int64_t                               space_end = malloc_count_current();
+
+    auto    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    int64_t decode_space_delta = space_end - space_begin;
+
+    auto source_length = gr.reproduce().length();
+
+    begin       = std::chrono::steady_clock::now();
+    space_begin = malloc_count_current();
+
     Grm qgr(std::move(gr));
-    end = std::chrono::steady_clock::now();
 
-    auto constr_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    end       = std::chrono::steady_clock::now();
+    space_end = malloc_count_current();
 
-    return QGrammarResult<Grm>(std::move(qgr), n, decode_time, constr_time);
+    auto    constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    int64_t constr_space_delta = space_end - space_begin;
+
+    return QGrammarResult<Grm>(std::move(qgr),
+                               source_length,
+                               decode_time,
+                               constr_time,
+                               decode_space_delta,
+                               constr_space_delta);
 }
 
 template<>
 inline QGrammarResult<std::string> build_query_grammar<std::string>(std::string &file) {
 
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    Grammar                               gr    = Grammar::from_file(file);
-    std::chrono::steady_clock::time_point end   = std::chrono::steady_clock::now();
+    Grammar gr = Grammar::from_file(file);
 
-    auto decode_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    int64_t     space_begin        = malloc_count_current();
+    std::string source             = gr.reproduce();
+    int64_t     space_end          = malloc_count_current();
+    auto        source_length      = source.length();
+    int64_t     decode_space_delta = space_end - space_begin;
 
-    std::string source = gr.reproduce();
-    auto source_length = source.length();
-
-    return QGrammarResult<std::string>(std::move(source), source_length, decode_time, 0);
+    return QGrammarResult<std::string>(std::move(source), source_length, 0, 0, decode_space_delta, 0);
 }
 
 template<Queryable Grm>
@@ -71,11 +98,27 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
     auto end              = std::chrono::steady_clock::now();
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
+
+    // so the calls are hopefully not optimized away
+    if (c < 0) {
+        std::cout << c;
+    }
+
+    std::string file_name;
+    auto last = file.find_last_of('/');
+    if(last < std::string::npos) {
+        file_name = file.substr(last + 1);
+    } else {
+        file_name = file;
+    }
+
     std::cout << "RESULT"
               << " type=random_access"
-              << " ds=" << name << " input_file=" << file << " input_size=" << data.source_length
+              << " ds=" << name << " input_file=" << file_name << " input_size=" << data.source_length
               << " num_queries=" << num_queries << " construction_time=" << data.constr_time
-              << " decode_time=" << data.decode_time << " query_time_total=" << query_time_total;
+              << " decode_space_delta=" << data.decode_space_delta
+              << " construction_space_delta=" << data.constr_space_delta << " decode_time=" << data.decode_time
+              << " query_time_total=" << query_time_total << std::endl;
 }
 
 template<Queryable Grm>
@@ -103,13 +146,26 @@ void benchmark_substring(QGrammarResult<Grm> &data,
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    // so the calls are hopefully not optimized away
+    if (c < 0) {
+        std::cout << c;
+    }
+
+    std::string file_name;
+    auto last = file.find_last_of('/');
+    if(last < std::string::npos) {
+        file_name = file.substr(last + 1);
+    } else {
+        file_name = file;
+    }
 
     std::cout << "RESULT"
               << " type=substring"
-              << " ds=" << name << " input_file=" << file << " input_size=" << data.source_length
+              << " ds=" << name << " input_file=" << file_name << " input_size=" << data.source_length
               << " num_queries=" << num_queries << " substring_length=" << length
               << " construction_time=" << data.constr_time << " decode_time=" << data.decode_time
-              << " query_time_total=" << query_time_total;
+              << " decode_space_delta=" << data.decode_space_delta
+              << " construction_space_delta=" << data.constr_space_delta << " query_time_total=" << query_time_total << std::endl;
 }
 
 template<gracli::Queryable Grm>
@@ -134,11 +190,26 @@ void benchmark_substring_random(QGrammarResult<Grm> &data, std::string file, siz
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
+    // so the calls are hopefully not optimized away
+    if (c < 0) {
+        std::cout << c;
+    }
+
+    std::string file_name;
+    auto last = file.find_last_of('/');
+    if(last < std::string::npos) {
+        file_name = file.substr(last + 1);
+    } else {
+        file_name = file;
+    }
+
     std::cout << "RESULT"
               << " type=substring_random"
-              << " ds=" << name << " input_file=" << file << " input_size=" << data.source_length
+              << " ds=" << name << " input_file=" << file_name << " input_size=" << data.source_length
               << " num_queries=" << num_queries << " constr_time=" << data.constr_time
-              << " decode_time=" << data.decode_time << " query_time_total=" << query_time_total;
+              << " decode_space_delta=" << data.decode_space_delta
+              << " construction_space_delta=" << data.constr_space_delta << " decode_time=" << data.decode_time
+              << " query_time_total=" << query_time_total << std::endl;
 }
 
 template<gracli::Queryable Grm>

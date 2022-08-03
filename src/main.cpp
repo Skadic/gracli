@@ -57,8 +57,8 @@ int main(int argc, char **argv) {
                     "grammar_type",
                     "TYPE",
                     type,
-                    "The Grammar Access Data Structure to use. (0 = Naive, 1 = Sampled Scan 512, 2 = Sampled Scan "
-                    "6400, 3 = Sampled Scan 12800)");
+                    "The Grammar Access Data Structure to use. (0 = String, 1 = Naive, 2 = Sampled Scan 512, 3 = Sampled Scan "
+                    "6400, 4 = Sampled Scan 25600)");
 
     if (!cp.process(argc, argv)) {
         return -1;

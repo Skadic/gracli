@@ -6,6 +6,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <sys/types.h>
 #include <vector>
@@ -287,6 +288,37 @@ class Grammar {
      * @return false If the grammar contains rules
      */
     const inline bool empty() const { return rule_count() == 0; }
+
+        private:
+        const inline size_t source_length(size_t id, std::vector<size_t> lookup) const {
+            std::vector<size_t> rule_lengths;
+            constexpr auto MAX = std::numeric_limits<size_t>().max();
+            rule_lengths.resize(rule_count(), MAX);
+
+            size_t count = 0;
+
+            for (auto &symbol : m_rules[id]) {
+                if(is_terminal(symbol)) {
+                    count++;
+                } else if (lookup[symbol - RULE_OFFSET] < MAX) {
+                    count += lookup[symbol - RULE_OFFSET];
+                } else {
+                    auto symb_length = source_length();
+                    lookup[symbol - RULE_OFFSET] = symb_length;
+                    count += symb_length;
+                }
+            }
+            return count;
+        }
+
+        public:
+        const inline size_t source_length() const {
+            std::vector<size_t> lookup;
+            constexpr auto MAX = std::numeric_limits<size_t>().max();
+            lookup.resize(rule_count(), MAX);
+
+            return source_length(m_start_rule_id, lookup);
+        }
 
     /**
      * @brief Checks whether a symbol is a terminal.

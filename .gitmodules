@@ -7,3 +7,6 @@
 [submodule "external/tlx"]
 	path = external/tlx
 	url = https://github.com/tlx/tlx
+[submodule "external/malloc_count"]
+	path = external/malloc_count
+	url = https://github.com/bingmann/malloc_count
