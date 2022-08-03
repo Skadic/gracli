@@ -4,8 +4,6 @@ Gracli (GRammar ACcess LIbrary) is a library that allows random access on gramma
 
 ## Build Instructions
 
-Make sure [Rust](https://www.rust-lang.org/) is installed.  
-
 1. Clone the repository using: `git clone --recurse-submodules https://github.com/Skadic/gracli.git`
 2. Run the following commands: 
 ```
