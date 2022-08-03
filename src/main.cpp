@@ -1,18 +1,18 @@
 
 
-
 #include <cstdint>
 
 #include "cmdline_parser.hpp"
+#include <benchmark/bench.hpp>
 #include <naive_query_grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
-#include <benchmark/bench.hpp>
 
 enum class GrammarType : uint8_t {
+    ReproducedString,
     Naive,
     SampledScan512,
     SampledScan6400,
-    SampledScan12800,
+    SampledScan25600,
 };
 
 int main(int argc, char **argv) {
@@ -32,15 +32,15 @@ int main(int argc, char **argv) {
 
     bool random_access;
     cp.add_flag('r',
-                    "random_access",
-                    random_access,
-                    "Benchmarks runtime of a Grammar's random access queries. Value is the number of queries.");
+                "random_access",
+                random_access,
+                "Benchmarks runtime of a Grammar's random access queries. Value is the number of queries.");
 
     bool substring;
     cp.add_flag('s',
-                    "substring",
-                    substring,
-                    "Benchmarks runtime of a Grammar's substring queries. Value is the number of queries.");
+                "substring",
+                substring,
+                "Benchmarks runtime of a Grammar's substring queries. Value is the number of queries.");
 
     unsigned int substring_length;
     cp.add_unsigned('l',
@@ -50,11 +50,7 @@ int main(int argc, char **argv) {
                     "Length of the substrings while benchmarking substring queries.");
 
     unsigned int num_queries;
-    cp.add_unsigned('n',
-                    "num_queries",
-                    "N",
-                    num_queries,
-                    "Amount of benchmark queries");
+    cp.add_unsigned('n', "num_queries", "N", num_queries, "Amount of benchmark queries");
 
     unsigned int type;
     cp.add_unsigned('g',
@@ -78,6 +74,10 @@ int main(int argc, char **argv) {
 
     if (random_access) {
         switch (grammar_type) {
+            case GrammarType::ReproducedString: {
+                benchmark_random_access<std::string>(file, num_queries, "string");
+                break;
+            }
             case GrammarType::Naive: {
                 benchmark_random_access<NaiveQueryGrammar>(file, num_queries, "naive");
                 break;
@@ -90,33 +90,50 @@ int main(int argc, char **argv) {
                 benchmark_random_access<SampledScanQueryGrammar<6400>>(file, num_queries, "sampled_scan_6400");
                 break;
             }
-            case GrammarType::SampledScan12800: {
-                benchmark_random_access<SampledScanQueryGrammar<12800>>(file, num_queries, "sampled_scan_12800");
+            case GrammarType::SampledScan25600: {
+                benchmark_random_access<SampledScanQueryGrammar<25600>>(file, num_queries, "sampled_scan_25600");
                 break;
             }
         }
     } else if (substring) {
         if (substring_length > 0) {
             switch (grammar_type) {
+                case GrammarType::ReproducedString: {
+                    benchmark_substring<std::string>(file, num_queries, substring_length, "string");
+                    break;
+                }
                 case GrammarType::Naive: {
                     benchmark_substring<NaiveQueryGrammar>(file, num_queries, substring_length, "naive");
                     break;
                 }
                 case GrammarType::SampledScan512: {
-                    benchmark_substring<SampledScanQueryGrammar<512>>(file, num_queries, substring_length, "sampled_scan_512");
+                    benchmark_substring<SampledScanQueryGrammar<512>>(file,
+                                                                      num_queries,
+                                                                      substring_length,
+                                                                      "sampled_scan_512");
                     break;
                 }
                 case GrammarType::SampledScan6400: {
-                    benchmark_substring<SampledScanQueryGrammar<6400>>(file, num_queries, substring_length, "sampled_scan_6400");
+                    benchmark_substring<SampledScanQueryGrammar<6400>>(file,
+                                                                       num_queries,
+                                                                       substring_length,
+                                                                       "sampled_scan_6400");
                     break;
                 }
-                case GrammarType::SampledScan12800: {
-                    benchmark_substring<SampledScanQueryGrammar<12800>>(file, num_queries, substring_length, "sampled_scan_6400");
+                case GrammarType::SampledScan25600: {
+                    benchmark_substring<SampledScanQueryGrammar<25600>>(file,
+                                                                        num_queries,
+                                                                        substring_length,
+                                                                        "sampled_scan_25600");
                     break;
                 }
             }
         } else {
             switch (grammar_type) {
+                case GrammarType::ReproducedString: {
+                    benchmark_substring_random<std::string>(file, substring, "string");
+                    break;
+                }
                 case GrammarType::Naive: {
                     benchmark_substring_random<NaiveQueryGrammar>(file, substring, "naive");
                     break;
@@ -129,8 +146,8 @@ int main(int argc, char **argv) {
                     benchmark_substring_random<SampledScanQueryGrammar<6400>>(file, num_queries, "sampled_scan_6400");
                     break;
                 }
-                case GrammarType::SampledScan12800: {
-                    benchmark_substring_random<SampledScanQueryGrammar<12800>>(file, num_queries, "sampled_scan_12800");
+                case GrammarType::SampledScan25600: {
+                    benchmark_substring_random<SampledScanQueryGrammar<25600>>(file, num_queries, "sampled_scan_25600");
                     break;
                 }
             }

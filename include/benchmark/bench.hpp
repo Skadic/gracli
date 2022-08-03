@@ -45,15 +45,15 @@ template<>
 inline QGrammarResult<std::string> build_query_grammar<std::string>(std::string &file) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    // Source: https://stackoverflow.com/questions/2912520/read-file-contents-into-a-string-in-c
-    std::ifstream ifs(file);
-    std::string   content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+    Grammar                               gr    = Grammar::from_file(file);
     std::chrono::steady_clock::time_point end   = std::chrono::steady_clock::now();
+
     auto decode_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
-    auto source_length = content.length();
+    std::string source = gr.reproduce();
+    auto source_length = source.length();
 
-    return QGrammarResult<std::string>(std::move(content), source_length, decode_time, 0);
+    return QGrammarResult<std::string>(std::move(source), source_length, decode_time, 0);
 }
 
 template<Queryable Grm>
@@ -72,6 +72,7 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     std::cout << "RESULT"
+              << " type=random_access"
               << " ds=" << name << " input_file=" << file << " input_size=" << data.source_length
               << " num_queries=" << num_queries << " construction_time=" << data.constr_time
               << " decode_time=" << data.decode_time << " query_time_total=" << query_time_total;
@@ -104,6 +105,7 @@ void benchmark_substring(QGrammarResult<Grm> &data,
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     std::cout << "RESULT"
+              << " type=substring"
               << " ds=" << name << " input_file=" << file << " input_size=" << data.source_length
               << " num_queries=" << num_queries << " substring_length=" << length
               << " construction_time=" << data.constr_time << " decode_time=" << data.decode_time
@@ -133,11 +135,10 @@ void benchmark_substring_random(QGrammarResult<Grm> &data, std::string file, siz
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     std::cout << "RESULT"
+              << " type=substring_random"
               << " ds=" << name << " input_file=" << file << " input_size=" << data.source_length
-              << " num_queries=" << num_queries << " substring_length="
-              << "0"
-              << " constr_time=" << data.constr_time << " decode_time=" << data.decode_time
-              << " query_time_total=" << query_time_total;
+              << " num_queries=" << num_queries << " constr_time=" << data.constr_time
+              << " decode_time=" << data.decode_time << " query_time_total=" << query_time_total;
 }
 
 template<gracli::Queryable Grm>
