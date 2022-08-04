@@ -265,9 +265,6 @@ class NaiveQueryGrammar {
      * @return The char at the given index in the source string.
      */
     char at(size_t i) const {
-        if (i >= m_start_rule_full_length) {
-            // TODO index out of bounds error
-        }
         size_t current_rule  = start_rule_id();
         size_t current_index = 0;
         while (i > 0 || Grammar::is_non_terminal(m_rules[current_rule][current_index])) {
@@ -284,6 +281,39 @@ class NaiveQueryGrammar {
         return (char) m_rules[current_rule][current_index];
     }
 
+  private:
+    void write(size_t id, size_t start, size_t &len, std::ostringstream &oss) const {
+        const Symbols &symbols = m_rules[id];
+        size_t         index   = 0;
+        {
+            // Find symbol start index in this rule
+            size_t symbol_len;
+            while (start >= (symbol_len = symbol_length(id, index))) {
+                start -= symbol_len;
+                index++;
+            }
+        }
+
+        // In this case, the symbol at this index is a nonterminal (otherwise we could decrement start if the
+        // symbol was a terminal), so we write the non-terminal's contents starting at the start index
+        // Also, advance the index by one, sice we handled this index already
+        if (start > 0) {
+            write(symbols[index++] - RULE_OFFSET, start, len, oss);
+        }
+        for (; len > 0 && index < symbols.size(); index++) {
+            if (Grammar::is_terminal(symbols[index])) {
+                // This is a single terminal. We just write it out
+                oss << (char) symbols[index];
+                len--;
+            } else {
+                // Since we're in the midst of writing this rule, we need to start at the first index inside the
+                // nonterminal
+                write(symbols[index] - RULE_OFFSET, 0, len, oss);
+            }
+        }
+    };
+
+  public:
     /**
      * @brief Gets the substring from a start to an end index in the source string.
      *
@@ -298,41 +328,10 @@ class NaiveQueryGrammar {
             return "";
         }
 
-        size_t            len = pattern_end - pattern_start;
-        std::stringstream ss;
+        size_t             len = pattern_end - pattern_start;
+        std::ostringstream ss;
 
-        std::function<void(size_t, size_t)> write = [&](size_t id, size_t start) {
-            const Symbols &symbols = m_rules[id];
-            size_t         index   = 0;
-            {
-                // Find symbol start index in this rule
-                size_t symbol_len;
-                while (start >= (symbol_len = symbol_length(id, index))) {
-                    start -= symbol_len;
-                    index++;
-                }
-            }
-
-            // In this case, the symbol at this index is a nonterminal (otherwise we could decrement start if the
-            // symbol was a terminal), so we write the non-terminal's contents starting at the start index
-            // Also, advance the index by one, sice we handled this index already
-            if (start > 0) {
-                write(symbols[index++] - RULE_OFFSET, start);
-            }
-            for (; len > 0 && index < symbols.size(); index++) {
-                if (Grammar::is_terminal(symbols[index])) {
-                    // This is a single terminal. We just write it out
-                    ss << (char) symbols[index];
-                    len--;
-                } else {
-                    // Since we're in the midst of writing this rule, we need to start at the first index inside the
-                    // nonterminal
-                    write(symbols[index] - RULE_OFFSET, 0);
-                }
-            }
-        };
-
-        write(start_rule_id(), pattern_start);
+        write(start_rule_id(), pattern_start, len, ss);
         return ss.str();
     }
 };

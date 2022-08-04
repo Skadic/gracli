@@ -48,12 +48,12 @@ inline QGrammarResult<Grm> build_query_grammar(std::string &file) {
     auto    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     int64_t decode_space_delta = space_end - space_begin;
 
-    auto source_length = gr.reproduce().length();
-
     begin       = std::chrono::steady_clock::now();
     space_begin = malloc_count_current();
 
     Grm qgr(std::move(gr));
+
+    auto source_length = qgr.source_length();
 
     end       = std::chrono::steady_clock::now();
     space_end = malloc_count_current();
@@ -92,12 +92,10 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
     auto   begin = std::chrono::steady_clock::now();
     size_t c     = 0;
     for (size_t i = 0; i < num_queries; i++) {
-        auto accessed = qgr.at(rand() % data.source_length);
-        c += accessed;
+        c += qgr.at(rand() % data.source_length);
     }
     auto end              = std::chrono::steady_clock::now();
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
 
     // so the calls are hopefully not optimized away
     if (c < 0) {
@@ -105,8 +103,8 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
     }
 
     std::string file_name;
-    auto last = file.find_last_of('/');
-    if(last < std::string::npos) {
+    auto        last = file.find_last_of('/');
+    if (last < std::string::npos) {
         file_name = file.substr(last + 1);
     } else {
         file_name = file;
@@ -152,8 +150,8 @@ void benchmark_substring(QGrammarResult<Grm> &data,
     }
 
     std::string file_name;
-    auto last = file.find_last_of('/');
-    if(last < std::string::npos) {
+    auto        last = file.find_last_of('/');
+    if (last < std::string::npos) {
         file_name = file.substr(last + 1);
     } else {
         file_name = file;
@@ -165,7 +163,8 @@ void benchmark_substring(QGrammarResult<Grm> &data,
               << " num_queries=" << num_queries << " substring_length=" << length
               << " construction_time=" << data.constr_time << " decode_time=" << data.decode_time
               << " decode_space_delta=" << data.decode_space_delta
-              << " construction_space_delta=" << data.constr_space_delta << " query_time_total=" << query_time_total << std::endl;
+              << " construction_space_delta=" << data.constr_space_delta << " query_time_total=" << query_time_total
+              << std::endl;
 }
 
 template<gracli::Queryable Grm>
@@ -196,8 +195,8 @@ void benchmark_substring_random(QGrammarResult<Grm> &data, std::string file, siz
     }
 
     std::string file_name;
-    auto last = file.find_last_of('/');
-    if(last < std::string::npos) {
+    auto        last = file.find_last_of('/');
+    if (last < std::string::npos) {
         file_name = file.substr(last + 1);
     } else {
         file_name = file;
