@@ -137,16 +137,18 @@ void benchmark_substring(QGrammarResult<Grm> &data,
 
     Grm &qgr = data.gr;
 
+    char buf[length];
+
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     size_t                                c     = 0;
     for (size_t i = 0; i < num_queries; i++) {
-        std::string accessed = qgr.substr(rand() % data.source_length, length);
-        c += accessed.length();
+        qgr.substr(buf, rand() % data.source_length, length);
+        c += buf[0];
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     // so the calls are hopefully not optimized away
-    if (c < 0) {
+    if (c < 1) {
         std::cout << c;
     }
 
