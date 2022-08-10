@@ -627,7 +627,6 @@ class SampledScanQueryGrammar {
         // The index of the sample in which the (inclusive) end index lies
         const auto end_sample_idx = (substr_end - 1) / sampling;
 
-
         // Since scan_left and scan_right only work for start- and end-indices which lie in the same block, we call this
         // method once for each block the substring spans over
         if (start_sample_idx != end_sample_idx) {
@@ -657,10 +656,225 @@ class SampledScanQueryGrammar {
      *
      * @return The substring in the given interval.
      */
-    std::string substr(size_t substr_start, size_t substr_len) const {
+    std::string substr(const size_t substr_start, size_t substr_len) const {
         std::ostringstream oss;
         substr_internal(substr_start, substr_len, oss);
         return oss.str();
+    }
+
+    // ------------------------------ Substring to char buffer ------------------------------
+  private:
+    /**
+     * @brief Writes the expansion of the rule with the given id to the char pointer in reverse.
+     * This respects the range substr_start and substr_end and only writes characters inside that range
+     */
+    char *write_expansion_reverse(char        *buf,
+                                  const size_t id,
+                                  size_t      &source_index,
+                                  const size_t substr_start,
+                                  const size_t substr_end) const {
+        auto &symbols = m_rules[id];
+
+        for (int i = symbols.size() - 1; i >= 0; i--) {
+            auto symbol = symbols[i];
+            if (Grammar::is_terminal(symbol)) {
+                if (source_index < substr_end) {
+                    *buf++ = (char) symbol;
+                }
+                source_index--;
+                continue;
+            }
+
+            auto rule_len          = rule_length(symbol - RULE_OFFSET);
+            auto rule_source_index = source_index - rule_len + 1;
+            if (rule_source_index < substr_end) {
+                buf = write_expansion_reverse(buf, symbol - RULE_OFFSET, source_index, substr_start, substr_end);
+            } else {
+                source_index -= rule_len;
+            }
+        }
+        return buf;
+    };
+    /**
+     * @brief Get the intersection of the left part of the block in which substr_start and substr_end are found
+     * and the range [substr_start, substr_end).
+     *
+     * @param substr_start The start of the substring to extract
+     * @param substr_end The end of the substring to extract
+     * @return std::string The intersection of the substring and the part of the block before (and not including) the
+     * sampled position
+     */
+    char *scan_left(char *buf, const size_t substr_start, const size_t substr_end) const {
+        char *start_buf = buf;
+
+        const auto        sample_idx = substr_start / sampling;
+        const QuerySample sample     = m_samples[sample_idx];
+
+        size_t rule           = sample.lowest_interval_containing_block;
+        size_t internal_index = sample.internal_index_of_first_in_block - 1;
+        size_t source_index   = sample_idx * sampling + sample.relative_index_in_block - 1;
+
+        if (substr_start > source_index || substr_end <= substr_start || sample.relative_index_in_block == 0) {
+            // Since the left part of the block is the part up to and not including the sampled position, we have
+            // nothing to return if the sampled position
+            return buf;
+        }
+
+        while (source_index >= substr_start) {
+            auto symbol              = m_rules[rule][internal_index];
+            auto symbol_len          = symbol_length(rule, internal_index);
+            auto symbol_source_index = source_index - symbol_len + 1;
+
+            if (symbol_source_index >= substr_end) {
+                // The symbol starts after the pattern. we skip it
+                source_index -= symbol_len;
+                internal_index--;
+            } else if (substr_start <= symbol_source_index) {
+                // In this case the symbol starts before (or at) the start of the pattern
+                if (Grammar::is_terminal(symbol)) {
+                    *buf++ = (char) symbol;
+                    source_index--;
+                } else {
+                    buf = write_expansion_reverse(buf, symbol - RULE_OFFSET, source_index, substr_start, substr_end);
+                    // Write reverse handles modifying the source_index
+                }
+                internal_index--;
+            } else {
+                // The symbol starts before the start of the pattern but its expansion lies partly inside the pattern
+                rule           = symbol - RULE_OFFSET;
+                internal_index = m_rules[rule].size() - 1;
+            }
+        }
+
+        char *end_buf = buf - 1;
+
+        char c;
+        while (start_buf < end_buf) {
+            c            = *start_buf;
+            *start_buf++ = *end_buf;
+            *end_buf--   = c;
+        }
+        return buf;
+    }
+
+    /**
+     * @brief Writes the expansion of the rule with the given id to the string stream and modifies source_index
+     * accordingly. This also respect susbtr_start and substr_end and only writes characters that are in that range
+     */
+    char *write_expansion(char        *buf,
+                          const size_t id,
+                          size_t      &source_index,
+                          const size_t substr_start,
+                          const size_t substr_end) const {
+        auto &symbols = m_rules[id];
+        for (auto symbol : symbols) {
+            if (Grammar::is_terminal(symbol)) {
+                // If this terminal is not inside our range we don't write it
+                if (source_index >= substr_start) {
+                    *buf++ = (char) symbol;
+                }
+                source_index++;
+                continue;
+            }
+
+            auto rule_len = rule_length(symbol - RULE_OFFSET);
+            // Does this nonterminal lie completely in our range? then write it. Otherwise just skip it
+            if (source_index + rule_len > substr_start) {
+                buf = write_expansion(buf, symbol - RULE_OFFSET, source_index, substr_start, substr_end);
+            } else {
+                source_index += rule_len;
+            }
+        }
+
+        return buf;
+    };
+
+    /**
+     * @brief Get the intersection of the right part of the block in which substr_start and substr_end are found
+     * and the range [substr_start, substr_end). This method only works if the substring denoted by substr_start and
+     * substr_end lies entirely in one block
+     *
+     * @param substr_start The start of the substring
+     * @param substr_end The end of the substring (exclusive)
+     * @return std::string The intersection of the substring and the part of the block after the sampled position
+     */
+    char *scan_right(char *buf, size_t substr_start, size_t substr_end) const {
+        const auto        sample_idx = substr_start / sampling;
+        const QuerySample sample     = m_samples[sample_idx];
+
+        // Get the sampled data in this block
+        size_t rule           = sample.lowest_interval_containing_block;
+        size_t internal_index = sample.internal_index_of_first_in_block;
+        size_t source_index   = sample_idx * sampling + sample.relative_index_in_block;
+
+        if (substr_end <= source_index || substr_end <= substr_start) {
+            // Since the right part of the block is the part up to and not including the sampled position, we have
+            // nothing to return if the sampled position
+            return buf;
+        }
+
+        while (source_index < substr_end) {
+            auto symbol     = m_rules[rule][internal_index];
+            auto symbol_len = symbol_length(rule, internal_index);
+            auto symbol_end = source_index + symbol_len;
+
+            if (symbol_end <= substr_start) {
+                // If this symbol is not in our range, skip it
+                source_index += symbol_len;
+                internal_index++;
+            } else if (symbol_end <= substr_end) {
+                // If the symbol is entirely in our range just write it in its entirety
+                if (Grammar::is_terminal(symbol)) {
+                    *buf++ = (char) symbol;
+                    source_index++;
+                } else {
+                    buf = write_expansion(buf, symbol - RULE_OFFSET, source_index, substr_start, substr_end);
+                }
+                internal_index++;
+            } else {
+                // The symbol doesn't end before substr_end so we need to go into the symbol and continue searching
+                // there
+                rule           = symbol - RULE_OFFSET;
+                internal_index = 0;
+            }
+        }
+        return buf;
+    }
+
+  public:
+    char *substr(char *buf, const size_t substr_start, const size_t substr_len) const {
+        // Exclusive end index
+        const auto substr_end = std::min(substr_start + substr_len, (size_t) m_start_rule_full_length);
+
+        if (substr_end == 0) {
+            // So that substr_end - 1 doesn't break everything
+            return buf;
+        }
+
+        // The index of the sample in which the start index lies
+        const auto start_sample_idx = substr_start / sampling;
+        // The index of the sample in which the (inclusive) end index lies
+        const auto end_sample_idx = (substr_end - 1) / sampling;
+
+        // Since scan_left and scan_right only work for start- and end-indices which lie in the same block, we call this
+        // method once for each block the substring spans over
+        if (start_sample_idx != end_sample_idx) {
+            for (size_t i = start_sample_idx; i <= end_sample_idx; i++) {
+                const auto start_idx = std::max(substr_start, i * sampling);
+                // We either need to span the entire block or until the end of the substring, whichever is first
+                // For the former case, we need to be aware that if start_idx is not the start of the block, we need to
+                // subtract this offset into the block so that the length fits
+                const auto len = std::min(sampling - (start_idx - i * sampling), substr_end - start_idx);
+
+                buf = substr(buf, start_idx, len);
+            }
+            return buf;
+        }
+
+        // get the left and right halves and put them together
+        buf = scan_left(buf, substr_start, substr_end);
+        buf = scan_right(buf, substr_start, substr_end);
+        return buf;
     }
 };
 
