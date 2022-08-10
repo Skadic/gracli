@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -333,6 +334,23 @@ class NaiveQueryGrammar {
 
         write(start_rule_id(), pattern_start, len, ss);
         return ss.str();
+    }
+
+    char *substr(char* buf, const size_t pattern_start, const size_t pattern_len) const {
+        auto pattern_end = std::min(pattern_start + pattern_len, (size_t) (m_start_rule_full_length - 1));
+        if (pattern_start >= pattern_end) {
+            return buf;
+        }
+
+        size_t             len = pattern_end - pattern_start;
+        std::ostringstream ss;
+
+        write(start_rule_id(), pattern_start, len, ss);
+        std::string s = ss.str();
+        
+        std::copy(s.begin(), s.end(), buf);
+
+        return buf + s.length();
     }
 };
 
