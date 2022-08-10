@@ -7,6 +7,7 @@
 
 #include "../concepts.hpp"
 #include "../grammar.hpp"
+#include "sampled_scan_query_grammar.hpp"
 #include <malloc_count.h>
 
 namespace gracli {
@@ -91,7 +92,7 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
 
     size_t c = 0;
 
-    auto   begin = std::chrono::steady_clock::now();
+    auto begin = std::chrono::steady_clock::now();
     for (size_t i = 0; i < num_queries; i++) {
         c += qgr.at(rand() % data.source_length);
     }
@@ -143,6 +144,51 @@ void benchmark_substring(QGrammarResult<Grm> &data,
     size_t                                c     = 0;
     for (size_t i = 0; i < num_queries; i++) {
         qgr.substr(buf, rand() % data.source_length, length);
+        c += buf[0];
+    }
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    // so the calls are hopefully not optimized away
+    if (c < 1) {
+        std::cout << c;
+    }
+
+    std::string file_name;
+    auto        last = file.find_last_of('/');
+    if (last < std::string::npos) {
+        file_name = file.substr(last + 1);
+    } else {
+        file_name = file;
+    }
+
+    std::cout << "RESULT"
+              << " type=substring"
+              << " ds=" << name << " input_file=" << file_name << " input_size=" << data.source_length
+              << " num_queries=" << num_queries << " substring_length=" << length
+              << " construction_time=" << data.constr_time << " decode_time=" << data.decode_time
+              << " decode_space_delta=" << data.decode_space_delta
+              << " construction_space_delta=" << data.constr_space_delta << " query_time_total=" << query_time_total
+              << std::endl;
+}
+
+template<>
+void benchmark_substring(QGrammarResult<std::string> &data,
+                         std::string                  file,
+                         size_t                       num_queries,
+                         size_t                       length,
+                         std::string                  name) {
+    srand(time(nullptr));
+
+    std::string &qgr = data.gr;
+
+    char buf[length];
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    size_t                                c     = 0;
+    for (size_t i = 0; i < num_queries; i++) {
+        std::copy(qgr.begin() + (rand() % data.source_length),
+                  qgr.begin() + (rand() % data.source_length + length),
+                  buf);
         c += buf[0];
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
