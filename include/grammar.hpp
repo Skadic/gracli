@@ -103,6 +103,19 @@ class Grammar {
      */
     void set_rule(const size_t id, Rule &&symbols) { m_rules[id] = symbols; }
 
+
+private:
+    void renumber_internal(const size_t rule_id, size_t &count, std::vector<Symbol> &renumbering) {
+            Rule &symbols = m_rules[rule_id];
+            for (auto symbol : symbols) {
+                if (is_terminal(symbol) || renumbering[symbol - RULE_OFFSET] != invalid<Symbol>())
+                    continue;
+                renumber_internal(symbol - RULE_OFFSET, count, renumbering);
+            }
+            renumbering[rule_id] = count++;
+
+  }
+public:
     /**
      * @brief Renumbers the rules in the grammar in such a way that rules with index i only depend on rules with indices
      * lesser than i.
@@ -116,16 +129,7 @@ class Grammar {
         size_t              count = 0;
 
         // Calculate a renumbering
-        std::function<void(size_t)> renumber = [&](size_t rule_id) {
-            Rule &symbols = m_rules[rule_id];
-            for (auto symbol : symbols) {
-                if (is_terminal(symbol) || renumbering[symbol - RULE_OFFSET] != invalid<Symbol>())
-                    continue;
-                renumber(symbol - RULE_OFFSET);
-            }
-            renumbering[rule_id] = count++;
-        };
-        renumber(m_start_rule_id);
+        renumber_internal(m_start_rule_id, count, renumbering);
         // make count equal to the max. id
         count--;
 
