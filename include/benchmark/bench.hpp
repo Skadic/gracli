@@ -89,8 +89,9 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
 
     Grm &qgr = data.gr;
 
+    size_t c = 0;
+
     auto   begin = std::chrono::steady_clock::now();
-    size_t c     = 0;
     for (size_t i = 0; i < num_queries; i++) {
         c += qgr.at(rand() % data.source_length);
     }
@@ -98,7 +99,7 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     // so the calls are hopefully not optimized away
-    if (c < 0) {
+    if (c < 1) {
         std::cout << c;
     }
 

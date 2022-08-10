@@ -68,7 +68,12 @@ int main(int argc, char **argv) {
         decode = true;
     }
 
+    if (type > 4) {
+        type = 0;
+    }
+
     GrammarType grammar_type = static_cast<GrammarType>(type);
+
 
     using namespace gracli;
 
