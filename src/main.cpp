@@ -24,35 +24,35 @@ int main(int argc, char **argv) {
     std::string file;
     cp.add_string('f', "file", file, "The input grammar file");
 
-    bool decode;
+    bool decode = false;
     cp.add_flag('d',
                 "decode",
                 decode,
                 "Decodes an encoded grammar file and outputs the resulting string to stdout (default behavior)");
 
-    bool random_access;
+    bool random_access = false;
     cp.add_flag('r',
                 "random_access",
                 random_access,
                 "Benchmarks runtime of a Grammar's random access queries. Value is the number of queries.");
 
-    bool substring;
+    bool substring = false;
     cp.add_flag('s',
                 "substring",
                 substring,
                 "Benchmarks runtime of a Grammar's substring queries. Value is the number of queries.");
 
-    unsigned int substring_length;
+    unsigned int substring_length = 10;
     cp.add_unsigned('l',
                     "substring_length",
                     "LENGTH",
                     substring_length,
                     "Length of the substrings while benchmarking substring queries.");
 
-    unsigned int num_queries;
+    unsigned int num_queries = 100;
     cp.add_unsigned('n', "num_queries", "N", num_queries, "Amount of benchmark queries");
 
-    unsigned int type;
+    unsigned int type = 0;
     cp.add_unsigned('g',
                     "grammar_type",
                     "TYPE",
