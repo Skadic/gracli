@@ -7,11 +7,14 @@
 
 #include "../concepts.hpp"
 #include "../grammar.hpp"
-#include "sampled_scan_query_grammar.hpp"
+#include "../sampled_scan_query_grammar.hpp"
 #include <malloc_count.h>
 #include <vector>
 
+#include <compute_lzend.hpp>
+
 namespace gracli {
+
 
 template<Queryable Grm>
 struct QGrammarResult {
@@ -188,10 +191,8 @@ void benchmark_substring(QGrammarResult<std::string> &data,
     size_t                                c     = 0;
     for (size_t i = 0; i < num_queries; i++) {
         size_t start = (rand() % data.source_length);
-        size_t end = std::min(start + length, data.source_length);
-        std::copy(qgr.begin() + start,
-                  qgr.begin() + end,
-                  buf);
+        size_t end   = std::min(start + length, data.source_length);
+        std::copy(qgr.begin() + start, qgr.begin() + end, buf);
         c += buf[0];
     }
 

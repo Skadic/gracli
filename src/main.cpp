@@ -6,6 +6,7 @@
 #include <benchmark/bench.hpp>
 #include <naive_query_grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
+#include <lzend.hpp>
 
 enum class GrammarType : uint8_t {
     ReproducedString,

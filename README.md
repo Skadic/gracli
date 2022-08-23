@@ -13,3 +13,8 @@ cmake ..
 make
 ```
 3. The binary is then in the `build` directory.
+
+## Attributions
+
+This project uses the [LZ-End Toolkit](https://github.com/dominikkempa/lz-end-toolkit) by Dominik Kempa and Dmitry Kosobolov:
+Dominik Kempa and Dmitry Kosolobov: LZ-End Parsing in Compressed Space. Data Compression Conference (DCC), IEEE, 2017.

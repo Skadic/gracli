@@ -10,3 +10,6 @@
 [submodule "external/malloc_count"]
 	path = external/malloc_count
 	url = https://github.com/bingmann/malloc_count
+[submodule "external/lz-end-toolkit"]
+	path = external/lz-end-toolkit
+	url = https://github.com/dominikkempa/lz-end-toolkit

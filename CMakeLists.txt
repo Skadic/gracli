@@ -14,7 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 # Copy compile_commands into the root folder instead of just sitting in the build folder
 add_custom_target(
   copy-compile-commands ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_LIST_DIR}/compile_commands.json
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_LIST_DIR}/compile_commands.json
   COMMAND ${CMAKE_COMMAND} -E echo "Copied compile_commands.json into root folder"
 )
 
@@ -35,7 +35,6 @@ ExternalProject_Add(malloc_count
   INSTALL_COMMAND ""
 )
 
-
 # -- library --
 add_library(libgracli INTERFACE)
 # include dir
@@ -48,6 +47,9 @@ target_link_libraries(libgracli INTERFACE tlx)
 # malloc_count
 target_include_directories(libgracli INTERFACE external/malloc_count)
 target_link_libraries(libgracli INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count/src/malloc_count-build/malloc_count.o)
+# lz-end-toolkit
+target_include_directories(libgracli INTERFACE external/lz-end-toolkit/include)
+target_include_directories(libgracli INTERFACE external/lz-end-toolkit/extras/in-ram-parser/include)
 
 # -- executable --
 add_executable(gracli src/main.cpp)

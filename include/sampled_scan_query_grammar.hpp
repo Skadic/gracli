@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <queue>
 #include <ranges>
-
-#include <grammar.hpp>
 #include <sstream>
+
+#include "grammar.hpp"
 #include <word_packing.hpp>
 
 namespace gracli {
