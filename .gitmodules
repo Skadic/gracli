@@ -13,3 +13,6 @@
 [submodule "external/lz-end-toolkit"]
 	path = external/lz-end-toolkit
 	url = https://github.com/dominikkempa/lz-end-toolkit
+[submodule "external/EWAHBoolArray"]
+	path = external/EWAHBoolArray
+	url = git@github.com:lemire/EWAHBoolArray.git

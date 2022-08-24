@@ -26,6 +26,7 @@ include(ExternalProject)
 add_subdirectory(external/word-packing)
 add_subdirectory(external/googletest)
 add_subdirectory(external/tlx)
+add_subdirectory(external/EWAHBoolArray)
 
 ExternalProject_Add(malloc_count
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count
@@ -50,6 +51,8 @@ target_link_libraries(libgracli INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/external/m
 # lz-end-toolkit
 target_include_directories(libgracli INTERFACE external/lz-end-toolkit/include)
 target_include_directories(libgracli INTERFACE external/lz-end-toolkit/extras/in-ram-parser/include)
+# EWAHBoolArray
+target_include_directories(libgracli INTERFACE external/EWAHBoolArray/include)
 
 # -- executable --
 add_executable(gracli src/main.cpp)
