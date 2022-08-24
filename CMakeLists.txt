@@ -26,7 +26,7 @@ include(ExternalProject)
 add_subdirectory(external/word-packing)
 add_subdirectory(external/googletest)
 add_subdirectory(external/tlx)
-add_subdirectory(external/EWAHBoolArray)
+add_subdirectory(external/BitMagic EXCLUDE_FROM_ALL)
 
 ExternalProject_Add(malloc_count
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count
@@ -48,11 +48,12 @@ target_link_libraries(libgracli INTERFACE tlx)
 # malloc_count
 target_include_directories(libgracli INTERFACE external/malloc_count)
 target_link_libraries(libgracli INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count/src/malloc_count-build/malloc_count.o)
-# lz-end-toolkit
-target_include_directories(libgracli INTERFACE external/lz-end-toolkit/include)
+# lz-end-toolkit in-ram-parser
 target_include_directories(libgracli INTERFACE external/lz-end-toolkit/extras/in-ram-parser/include)
-# EWAHBoolArray
-target_include_directories(libgracli INTERFACE external/EWAHBoolArray/include)
+add_library(lzend external/lz-end-toolkit/extras/in-ram-parser/src/utils.cpp)
+target_link_libraries(libgracli INTERFACE lzend)
+# BitMagic
+target_include_directories(libgracli INTERFACE external/BitMagic/src)
 
 # -- executable --
 add_executable(gracli src/main.cpp)
