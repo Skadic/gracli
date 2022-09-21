@@ -11,10 +11,10 @@
 #include <sys/types.h>
 #include <vector>
 
-#include "../external/word-packing/include/word_packing.hpp"
-#include "consts.hpp"
-#include "grammar_tuple_coder.hpp"
-#include "util.hpp"
+#include <consts.hpp>
+#include <grammar_tuple_coder.hpp>
+#include <util.hpp>
+#include <word_packing.hpp>
 
 namespace gracli {
 
@@ -25,7 +25,7 @@ namespace gracli {
 class Grammar {
 
   public:
-    using Symbol = u_int32_t;
+    using Symbol = uint32_t;
     using Rule   = word_packing::PackedIntVector<uint64_t>;
 
   private:
@@ -103,19 +103,18 @@ class Grammar {
      */
     void set_rule(const size_t id, Rule &&symbols) { m_rules[id] = symbols; }
 
-
-private:
+  private:
     void renumber_internal(const size_t rule_id, size_t &count, std::vector<Symbol> &renumbering) {
-            Rule &symbols = m_rules[rule_id];
-            for (auto symbol : symbols) {
-                if (is_terminal(symbol) || renumbering[symbol - RULE_OFFSET] != invalid<Symbol>())
-                    continue;
-                renumber_internal(symbol - RULE_OFFSET, count, renumbering);
-            }
-            renumbering[rule_id] = count++;
+        Rule &symbols = m_rules[rule_id];
+        for (auto symbol : symbols) {
+            if (is_terminal(symbol) || renumbering[symbol - RULE_OFFSET] != invalid<Symbol>())
+                continue;
+            renumber_internal(symbol - RULE_OFFSET, count, renumbering);
+        }
+        renumbering[rule_id] = count++;
+    }
 
-  }
-public:
+  public:
     /**
      * @brief Renumbers the rules in the grammar in such a way that rules with index i only depend on rules with indices
      * lesser than i.

@@ -4,14 +4,14 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
-
-#include "../concepts.hpp"
-#include "../grammar.hpp"
-#include "../sampled_scan_query_grammar.hpp"
-#include <malloc_count.h>
 #include <vector>
 
+#include <concepts.hpp>
+#include <grammar.hpp>
+#include <sampled_scan_query_grammar.hpp>
+
 #include <compute_lzend.hpp>
+#include <malloc_count.h>
 
 namespace gracli {
 
