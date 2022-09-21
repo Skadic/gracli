@@ -20,12 +20,14 @@ class LzEnd {
     Parsing m_parsing;
 
     /**
-     * @brief Stores the last character of each phrase contiguously
+     * @brief Stores the last character of each phrase contiguously.
+     * In the original paper, this is L.
      */
     std::vector<Char> m_last;
 
     /**
      * @brief For each text position, stores a 1 if the position is the last character of a phrase.
+     * In the original paper, this is B.
      */
     BitVec                      m_last_pos;
     std::unique_ptr<RankSelect> m_last_pos_rs;
@@ -36,16 +38,19 @@ class LzEnd {
      *
      * For empty sources (phrase of just 1 character) the sources are considered to start before the first text position
      * and therefore appended at the start
+     *
+     * In the original paper, this is S.
      */
     BitVec                      m_source_begin;
     std::unique_ptr<RankSelect> m_source_begin_rs;
 
 
-    // TODO This should be a permutation datastructure that allows to calculate P[i] and P^-1[i]
     /**
      * @brief Maps a phrase to the index of its source.
      *
      * If m_source_map[i] = j, then the source of phrase i is the one represented by the j-th 1 in m_source_begin.
+     *
+     * In the original paper, this is P.
      */
     Permutation<> m_source_map;
 
@@ -76,12 +81,12 @@ class LzEnd {
         size_t n         = m_source_length;
 
         m_last.reserve(n_phrases);
-        //m_source_map.reserve(n_phrases);
         m_last_pos.resize(n);
         m_source_begin.resize(n + n_phrases);
 
         size_t current_index = 0;
 
+        // Calculate all end positions of phrases and store them
         for (int i = 0; i < n_phrases; i++) {
             Phrase &f = m_parsing[i];
             m_last.push_back(f.m_char);
@@ -93,31 +98,36 @@ class LzEnd {
         m_last_pos.freeze();
         m_last_pos.build_rs_index(m_last_pos_rs.get());
 
-        std::vector<std::pair<size_t, Phrase &>> sorted_phrases;
-        sorted_phrases.reserve(n_phrases);
+
+        // Calculate the pairs of phrases and the start indices of their sources
+        std::vector<std::pair<size_t, Phrase &>> phrases;
+        phrases.reserve(n_phrases);
 
         current_index = 0;
         for (int i = 0; i < n_phrases; i++) {
             Phrase &f = m_parsing[i];
             if (f.m_len == 1) {
-                sorted_phrases.emplace_back(0, f);
+                phrases.emplace_back(0, f);
                 continue;
             }
 
+            // The phrase's source
             Phrase &src = m_parsing[f.m_link];
 
             size_t src_end   = select1_last_pos(f.m_link + 1);
             size_t src_start = src_end - f.m_len + 2;
-            sorted_phrases.emplace_back(src_start + 1, f);
+            phrases.emplace_back(src_start + 1, f);
         }
 
+        // for now this is used as a buffer to keep track of the sources
+        // sorted ascending by their source's start index in the text
         std::vector<TextOffset> source_map_raw(m_last.size());
         source_map_raw.resize(n_phrases);
         std::iota(source_map_raw.begin(), source_map_raw.end(), 0);
 
         std::stable_sort(source_map_raw.begin(), source_map_raw.end(), [&](const int &l, const int &r) {
-            auto &lhs = sorted_phrases[l];
-            auto &rhs = sorted_phrases[r];
+            auto &lhs = phrases[l];
+            auto &rhs = phrases[r];
             if (lhs.first != rhs.first) {
                 return lhs.first < rhs.first;
             } else {
@@ -125,24 +135,55 @@ class LzEnd {
             }
         });
 
-        current_index       = 0;
+        // Calculate the amount of sources starting at each index
+
+        // The index we are currently modifying
         size_t bit_index    = 0;
+        // The phrase we are currently handling
         size_t phrase_index = 0;
-        size_t start        = sorted_phrases[source_map_raw[phrase_index]].first;
+        // The start index of the current phrase's source
+        size_t start        = phrases[source_map_raw[phrase_index]].first;
+
+        // We iterate through the phrases in order of their source's appearance in the text
+        // For every phrase that starts at a certain index, we place a 1, then we place a 0 (with a no-op) and repeat
         for (int i = 0; i < n; i++) {
             while (i == start && phrase_index < n_phrases) {
                 m_source_begin.set_bit(bit_index++);
                 phrase_index++;
-                start = sorted_phrases[source_map_raw[phrase_index]].first;
+                start = phrases[source_map_raw[phrase_index]].first;
             }
             bit_index++;
         }
 
-        m_source_map.construct(source_map_raw);
-
         m_source_begin.optimize();
         m_source_begin.freeze();
         m_source_begin.build_rs_index(m_source_begin_rs.get());
+
+
+        // TODO Kinda janky implementation. Surely this can be done better
+
+        // Calculate the actual source mapping
+        // We first count how many sources start at each index in the text
+        std::vector<TextOffset> current_source_count(n + 1);
+        for(auto &[src_start, phrase] : phrases) {
+            current_source_count[src_start + 1]++;
+        }
+        // Prefix sum. This is basically equivalent to a prefix sum over S
+        for (int i = 2; i < n + 1; ++i) {
+            current_source_count[i] += current_source_count[i-1] + 1;
+            current_source_count[i-1]++;
+        }
+
+        // We map the phrases in B to 1s in S
+        size_t id = 0;
+        for (auto &[src_start, factor] : phrases) {
+            // For every index in the source text, there is a string 1^k0 in S, such that the number of 1s denotes the number of sources starting at that index
+            // This is the index in S at which this 1^k0 is situated
+            source_map_raw[id++] = rank1_source_begin(current_source_count[src_start]++) - 1;
+        }
+
+        m_source_map.construct(source_map_raw);
+
     }
 
   public:
@@ -163,10 +204,16 @@ class LzEnd {
         std::cout << "S: "; print_bv(m_source_begin);
         std::cout << "P: "; print_perm(m_source_map);
     }
-  private:
 
   public:
-    char *substr(char *buf, const size_t substr_start, const size_t substr_len) {
+
+    char at(size_t i) const {
+        char c;
+        substr(&c, i, 1);
+        return c;
+    }
+
+    char *substr(char *buf, const size_t substr_start, const size_t substr_len) const {
         if (substr_len == 0) {
             return buf;
         }
@@ -188,18 +235,26 @@ class LzEnd {
         if (start_phrase == end_phrase) {
             // If the substring is only 1 character and that character is the last character of the phrase,
             // then we can just read it from the vector
-            if (substr_len == 1) {
-                *buf++ = *reinterpret_cast<char*>(&m_last[start_phrase]);
-                return buf;
-            }
+            //if (substr_len == 1 && substr_start == select1_last_pos(start_phrase)) {
+            //    *buf++ = *reinterpret_cast<char*>(&m_last[start_phrase]);
+            //    return buf;
+            //}
             // Find the source of this phrase
-            size_t source = m_source_map.previous(start_phrase);
-            size_t source_start_index = select1_source_begin(source + 1) - source;
-            buf = substr(buf, source_start_index, substr_len - 1);
+            size_t source = m_source_map.next(start_phrase);
+            size_t start        = select1_source_begin(source + 1) - source - 1;
+            size_t phrase_start = start_phrase > 0 ? select1_last_pos(start_phrase) + 1 : 0;
+            size_t phrase_end = select1_last_pos(start_phrase + 1);
 
-            // If this condition is false, then the character to extract is not the last of the phrase and therefore we do not return it if this is false
-            if (substr_len > 1) {
-                *buf++ = *reinterpret_cast<char *>(&m_last[start_phrase]);
+            // If the pattern doesn't start at the beginning of a phrase we need to add the offset to it
+            start += substr_start - phrase_start;
+
+            // If the substring ends before the phrase then we need to extract the entire thing from the sources alone
+            if(substr_start + substr_len - 1 < phrase_end) {
+                buf = substr(buf, start, substr_len);
+            } else {
+                // In the other case, we can extract the last character directly and only have to get the rest from the sources
+                buf = substr(buf, start, substr_len - 1);
+                *buf++ = *reinterpret_cast<const char *>(&m_last[start_phrase]);
             }
             return buf;
         }
@@ -209,8 +264,13 @@ class LzEnd {
             phrase_start = i > 0 ? select1_last_pos(i) + 1 : 0;
             phrase_end = select1_last_pos(i + 1);
 
-            start = select1_source_begin(m_source_map.next(i) + 1) - m_source_map.next(i);
+            // We find the start index of the source in the text
+            start = select1_source_begin(m_source_map.next(i) + 1) - m_source_map.next(i) - 1;
+
+            // We calculate the amount of characters we need to read from the source
             if(i == start_phrase) {
+                // If this is the start phrase it might be that the substring starts inside a phrase.
+                // In that case, we need to add the offset inside the phrase to our source start position
                 start += substr_start - phrase_start;
                 len = select1_last_pos(start_phrase + 1) - substr_start + 1;
             } else if (i == end_phrase) {
@@ -219,12 +279,14 @@ class LzEnd {
                 len = select1_last_pos(i + 1) - select1_last_pos(i);
             }
 
-
+            // If this is the end phrase and the substring ends before the end of the phrase
+            // we need to extract the entire thing from sources alone
             if(i == end_phrase && phrase_start + len - 1 < phrase_end) {
                 buf = substr(buf, start, len);
             } else {
+                // Otherwise we can get the last character of the phrase from the array and only the rest from the sources
                 buf = substr(buf, start, len - 1);
-                *buf++ = *reinterpret_cast<char *>(&m_last[i]);
+                *buf++ = *reinterpret_cast<const char *>(&m_last[i]);
             }
         }
         return buf;
