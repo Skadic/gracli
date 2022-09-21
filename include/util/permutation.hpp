@@ -21,32 +21,33 @@ class Permutation {
     /**
      * The number of elements in this permutation
      */
-    size_t                      m_size;
+    size_t m_size;
     /**
      * The word width with which the elements are stored
      */
-    uint8_t                     m_word_width;
+    uint8_t m_word_width;
     /**
      * The number of elements of the packing type need to be in the permutation buffer
      */
-    size_t                      m_num_packs;
+    size_t m_num_packs;
     /**
      * The buffer containing the permutation. This may only be accessed using the given accessor method
      */
-    std::vector<Pack>           m_permutation_buf;
+    std::vector<Pack> m_permutation_buf;
     /**
      * A bitvector containing a 1 at each index where there is a shortcut in a cycle of the permutation
      */
-    BitVec                      m_shortcut_pos;
+    BitVec m_shortcut_pos;
     /**
-     * The spacing of the permutation's shortcuts. On average, there will be a shortcut every "m_shortcut_spacing" elements
+     * The spacing of the permutation's shortcuts. On average, there will be a shortcut every "m_shortcut_spacing"
+     * elements
      */
     size_t                      m_shortcut_spacing;
     std::unique_ptr<RankSelect> m_shortcut_pos_rs;
     /**
      * The buffer containing the shortcuts. This may only be accessed using the given accessor method
      */
-    std::vector<Pack>           m_shortcut_buf;
+    std::vector<Pack> m_shortcut_buf;
 
     inline auto permutation_accessor() const {
         return word_packing::accessor(const_cast<Pack const *>(m_permutation_buf.data()), m_word_width);
@@ -61,7 +62,8 @@ class Permutation {
      * Constructs the permutation datastructure from a sized range. Note, that this range must contain all integers
      * between 0 (inclusive) and n (exclusive) where n is the number of elements in the range.
      *
-     * @tparam Iter Any container that supports sized range. Make sure that iterating over this type of range produces the elements in the order you want!
+     * @tparam Iter Any container that supports sized range. Make sure that iterating over this type of range produces
+     * the elements in the order you want!
      * @param iter A sized range containing the values for the permutation
      */
     template<std::ranges::sized_range Iter>
@@ -156,26 +158,24 @@ class Permutation {
     }
 
     size_t previous(const size_t i) const {
-        auto perm  = permutation_accessor();
+        auto perm      = permutation_accessor();
         auto shortcuts = shortcut_accessor();
         // Find next shortcut
         auto current_pos = i;
         // While there is no shortcut at the current position step forward.
-        while(!m_shortcut_pos[current_pos]) {
+        while (!m_shortcut_pos[current_pos]) {
             current_pos = perm[current_pos];
         }
         // Take the shortcut
         current_pos = shortcuts[m_shortcut_pos.rank(current_pos, *m_shortcut_pos_rs) - 1];
         // Go forward until the next value is value at index i
-        while(perm[current_pos] != i) {
+        while (perm[current_pos] != i) {
             current_pos = perm[current_pos];
         }
         return current_pos;
     }
 
-    size_t size() const {
-        return m_size;
-    }
+    size_t size() const { return m_size; }
 };
 
 } // namespace gracli

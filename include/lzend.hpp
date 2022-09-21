@@ -1,10 +1,10 @@
 #pragma once
 
 #include <bm64.h>
+#include <compute_lzend.hpp>
 #include <cstdint>
 #include <numeric>
 #include <util/permutation.hpp>
-#include <compute_lzend.hpp>
 
 namespace gracli::lz {
 
@@ -43,7 +43,6 @@ class LzEnd {
      */
     BitVec                      m_source_begin;
     std::unique_ptr<RankSelect> m_source_begin_rs;
-
 
     /**
      * @brief Maps a phrase to the index of its source.
@@ -98,7 +97,6 @@ class LzEnd {
         m_last_pos.freeze();
         m_last_pos.build_rs_index(m_last_pos_rs.get());
 
-
         // Calculate the pairs of phrases and the start indices of their sources
         std::vector<std::pair<size_t, Phrase &>> phrases;
         phrases.reserve(n_phrases);
@@ -138,11 +136,11 @@ class LzEnd {
         // Calculate the amount of sources starting at each index
 
         // The index we are currently modifying
-        size_t bit_index    = 0;
+        size_t bit_index = 0;
         // The phrase we are currently handling
         size_t phrase_index = 0;
         // The start index of the current phrase's source
-        size_t start        = phrases[source_map_raw[phrase_index]].first;
+        size_t start = phrases[source_map_raw[phrase_index]].first;
 
         // We iterate through the phrases in order of their source's appearance in the text
         // For every phrase that starts at a certain index, we place a 1, then we place a 0 (with a no-op) and repeat
@@ -159,31 +157,29 @@ class LzEnd {
         m_source_begin.freeze();
         m_source_begin.build_rs_index(m_source_begin_rs.get());
 
-
         // TODO Kinda janky implementation. Surely this can be done better
 
         // Calculate the actual source mapping
         // We first count how many sources start at each index in the text
         std::vector<TextOffset> current_source_count(n + 1);
-        for(auto &[src_start, phrase] : phrases) {
+        for (auto &[src_start, phrase] : phrases) {
             current_source_count[src_start + 1]++;
         }
         // Prefix sum. This is basically equivalent to a prefix sum over S
         for (int i = 2; i < n + 1; ++i) {
-            current_source_count[i] += current_source_count[i-1] + 1;
-            current_source_count[i-1]++;
+            current_source_count[i] += current_source_count[i - 1] + 1;
+            current_source_count[i - 1]++;
         }
 
         // We map the phrases in B to 1s in S
         size_t id = 0;
         for (auto &[src_start, factor] : phrases) {
-            // For every index in the source text, there is a string 1^k0 in S, such that the number of 1s denotes the number of sources starting at that index
-            // This is the index in S at which this 1^k0 is situated
+            // For every index in the source text, there is a string 1^k0 in S, such that the number of 1s denotes the
+            // number of sources starting at that index This is the index in S at which this 1^k0 is situated
             source_map_raw[id++] = rank1_source_begin(current_source_count[src_start]++) - 1;
         }
 
         m_source_map.construct(source_map_raw);
-
     }
 
   public:
@@ -200,13 +196,15 @@ class LzEnd {
         m_source_length = input.size();
         compute_lzend<Char, TextOffset>(input.data(), m_source_length, &m_parsing);
         build_aux_ds();
-        std::cout << "B: "; print_bv(m_last_pos);
-        std::cout << "S: "; print_bv(m_source_begin);
-        std::cout << "P: "; print_perm(m_source_map);
+        std::cout << "B: ";
+        print_bv(m_last_pos);
+        std::cout << "S: ";
+        print_bv(m_source_begin);
+        std::cout << "P: ";
+        print_perm(m_source_map);
     }
 
   public:
-
     char at(size_t i) const {
         char c;
         substr(&c, i, 1);
@@ -218,15 +216,15 @@ class LzEnd {
             return buf;
         }
 
-        const size_t end_incl     = substr_start + substr_len - 1;
+        const size_t end_incl = substr_start + substr_len - 1;
         size_t       start_phrase;
-        if(substr_start > 0) {
+        if (substr_start > 0) {
             start_phrase = rank1_last_pos(substr_start - 1);
         } else {
             start_phrase = 0;
         }
-        size_t       end_phrase;
-        if(end_incl > 0) {
+        size_t end_phrase;
+        if (end_incl > 0) {
             end_phrase = rank1_last_pos(end_incl - 1);
         } else {
             end_phrase = 0;
@@ -235,25 +233,26 @@ class LzEnd {
         if (start_phrase == end_phrase) {
             // If the substring is only 1 character and that character is the last character of the phrase,
             // then we can just read it from the vector
-            //if (substr_len == 1 && substr_start == select1_last_pos(start_phrase)) {
+            // if (substr_len == 1 && substr_start == select1_last_pos(start_phrase)) {
             //    *buf++ = *reinterpret_cast<char*>(&m_last[start_phrase]);
             //    return buf;
             //}
             // Find the source of this phrase
-            size_t source = m_source_map.next(start_phrase);
+            size_t source       = m_source_map.next(start_phrase);
             size_t start        = select1_source_begin(source + 1) - source - 1;
             size_t phrase_start = start_phrase > 0 ? select1_last_pos(start_phrase) + 1 : 0;
-            size_t phrase_end = select1_last_pos(start_phrase + 1);
+            size_t phrase_end   = select1_last_pos(start_phrase + 1);
 
             // If the pattern doesn't start at the beginning of a phrase we need to add the offset to it
             start += substr_start - phrase_start;
 
             // If the substring ends before the phrase then we need to extract the entire thing from the sources alone
-            if(substr_start + substr_len - 1 < phrase_end) {
+            if (substr_start + substr_len - 1 < phrase_end) {
                 buf = substr(buf, start, substr_len);
             } else {
-                // In the other case, we can extract the last character directly and only have to get the rest from the sources
-                buf = substr(buf, start, substr_len - 1);
+                // In the other case, we can extract the last character directly and only have to get the rest from the
+                // sources
+                buf    = substr(buf, start, substr_len - 1);
                 *buf++ = *reinterpret_cast<const char *>(&m_last[start_phrase]);
             }
             return buf;
@@ -262,13 +261,13 @@ class LzEnd {
         for (size_t i = start_phrase; i <= end_phrase; ++i) {
             size_t start, len, phrase_start, phrase_end;
             phrase_start = i > 0 ? select1_last_pos(i) + 1 : 0;
-            phrase_end = select1_last_pos(i + 1);
+            phrase_end   = select1_last_pos(i + 1);
 
             // We find the start index of the source in the text
             start = select1_source_begin(m_source_map.next(i) + 1) - m_source_map.next(i) - 1;
 
             // We calculate the amount of characters we need to read from the source
-            if(i == start_phrase) {
+            if (i == start_phrase) {
                 // If this is the start phrase it might be that the substring starts inside a phrase.
                 // In that case, we need to add the offset inside the phrase to our source start position
                 start += substr_start - phrase_start;
@@ -281,20 +280,19 @@ class LzEnd {
 
             // If this is the end phrase and the substring ends before the end of the phrase
             // we need to extract the entire thing from sources alone
-            if(i == end_phrase && phrase_start + len - 1 < phrase_end) {
+            if (i == end_phrase && phrase_start + len - 1 < phrase_end) {
                 buf = substr(buf, start, len);
             } else {
-                // Otherwise we can get the last character of the phrase from the array and only the rest from the sources
-                buf = substr(buf, start, len - 1);
+                // Otherwise we can get the last character of the phrase from the array and only the rest from the
+                // sources
+                buf    = substr(buf, start, len - 1);
                 *buf++ = *reinterpret_cast<const char *>(&m_last[i]);
             }
         }
         return buf;
     }
 
-    size_t size() const {
-        return m_source_length;
-    }
+    size_t size() const { return m_source_length; }
 };
 
 } // namespace gracli::lz

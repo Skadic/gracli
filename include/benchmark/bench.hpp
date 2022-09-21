@@ -15,7 +15,6 @@
 
 namespace gracli {
 
-
 template<Queryable Grm>
 struct QGrammarResult {
     Grm     gr;
