@@ -229,9 +229,23 @@ class LzEnd {
     }
 
     char at(size_t i) const {
-        char c;
-        substr(&c, i, 1);
-        return c;
+        size_t phrase_id = i > 0 ? rank1_last_pos(i - 1) : 0;
+
+        while (!m_last_pos[i]) {
+            // Find the source_phrase of this phrase
+            size_t source_phrase = m_source_map.next(phrase_id);
+            size_t phrase_start = phrase_id > 0 ? select1_last_pos(phrase_id) + 1 : 0;
+
+            // We move to the source since this is where we need to read from
+            size_t new_i = select1_source_begin(source_phrase + 1) - source_phrase - 1;
+            // If the char isn't at the beginning of a phrase we need to add the offset to it
+            new_i += i - phrase_start;
+
+            i = new_i;
+            // Find the new i's phrase
+            phrase_id = i > 0 ? rank1_last_pos(i - 1) : 0;
+        }
+        return (char) m_last[phrase_id];
     }
 
     char *substr(char *buf, const size_t substr_start, const size_t substr_len) const {
