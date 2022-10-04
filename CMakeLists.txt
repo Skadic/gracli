@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
-# Copy compile_commands into the root folder instead of just sitting in the build folder
+# Copy compile_commands into the root folder
 add_custom_target(
   copy-compile-commands ALL
   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_LIST_DIR}/compile_commands.json
@@ -35,6 +35,16 @@ ExternalProject_Add(malloc_count
   CONFIGURE_COMMAND ""
   INSTALL_COMMAND ""
 )
+
+## If ninja is used, this enables colored output for the build output
+option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
+if (${FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
 
 # -- library --
 add_library(libgracli INTERFACE)

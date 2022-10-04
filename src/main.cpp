@@ -1,12 +1,10 @@
-
-
 #include <cstdint>
 
-#include "cmdline_parser.hpp"
 #include <benchmark/bench.hpp>
+#include <cmdline_parser.hpp>
+#include <lzend.hpp>
 #include <naive_query_grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
-#include <lzend.hpp>
 
 enum class GrammarType : uint8_t {
     ReproducedString,
@@ -14,9 +12,19 @@ enum class GrammarType : uint8_t {
     SampledScan512,
     SampledScan6400,
     SampledScan25600,
+    LzEnd,
 };
 
 int main(int argc, char **argv) {
+
+    // gracli::lz::LzEnd l("build/test.txt");
+
+    // auto n = 5;
+    // for (int i = 0; i < l.source_length() - n + 1; i++) {
+    //     char buf[20];
+    //     l.substr(buf, i, n);
+    //     std::cout << buf << std::endl;
+    // }
 
     tlx::CmdlineParser cp;
 
@@ -54,12 +62,12 @@ int main(int argc, char **argv) {
     cp.add_unsigned('n', "num_queries", "N", num_queries, "Amount of benchmark queries");
 
     unsigned int type = 0;
-    cp.add_unsigned('g',
-                    "grammar_type",
-                    "TYPE",
+    cp.add_unsigned('a',
+                    "data_structure",
+                    "DATA_STRUCTURE",
                     type,
-                    "The Grammar Access Data Structure to use. (0 = String, 1 = Naive, 2 = Sampled Scan 512, 3 = Sampled Scan "
-                    "6400, 4 = Sampled Scan 25600)");
+                    "The Access Data Structure to use. (0 = String, 1 = Naive, 2 = Sampled Scan 512, 3 = Sampled Scan "
+                    "6400, 4 = Sampled Scan 25600, 5 = LzEnd)");
 
     if (!cp.process(argc, argv)) {
         return -1;
@@ -69,12 +77,11 @@ int main(int argc, char **argv) {
         decode = true;
     }
 
-    if (type > 4) {
+    if (type > 5) {
         type = 0;
     }
 
-    GrammarType grammar_type = static_cast<GrammarType>(type);
-
+    auto grammar_type = static_cast<GrammarType>(type);
 
     using namespace gracli;
 
@@ -100,62 +107,45 @@ int main(int argc, char **argv) {
                 benchmark_random_access<SampledScanQueryGrammar<25600>>(file, num_queries, "sampled_scan_25600");
                 break;
             }
+            case GrammarType::LzEnd: {
+                benchmark_random_access<lz::LzEnd>(file, num_queries, "lzend");
+                break;
+            }
         }
     } else if (substring) {
-        if (substring_length > 0) {
-            switch (grammar_type) {
-                case GrammarType::ReproducedString: {
-                    benchmark_substring<std::string>(file, num_queries, substring_length, "string");
-                    break;
-                }
-                case GrammarType::Naive: {
-                    benchmark_substring<NaiveQueryGrammar>(file, num_queries, substring_length, "naive");
-                    break;
-                }
-                case GrammarType::SampledScan512: {
-                    benchmark_substring<SampledScanQueryGrammar<512>>(file,
-                                                                      num_queries,
-                                                                      substring_length,
-                                                                      "sampled_scan_512");
-                    break;
-                }
-                case GrammarType::SampledScan6400: {
-                    benchmark_substring<SampledScanQueryGrammar<6400>>(file,
-                                                                       num_queries,
-                                                                       substring_length,
-                                                                       "sampled_scan_6400");
-                    break;
-                }
-                case GrammarType::SampledScan25600: {
-                    benchmark_substring<SampledScanQueryGrammar<25600>>(file,
-                                                                        num_queries,
-                                                                        substring_length,
-                                                                        "sampled_scan_25600");
-                    break;
-                }
+        switch (grammar_type) {
+            case GrammarType::ReproducedString: {
+                benchmark_substring(file, num_queries, substring_length, "string");
+                break;
             }
-        } else {
-            switch (grammar_type) {
-                case GrammarType::ReproducedString: {
-                    benchmark_substring_random<std::string>(file, substring, "string");
-                    break;
-                }
-                case GrammarType::Naive: {
-                    benchmark_substring_random<NaiveQueryGrammar>(file, substring, "naive");
-                    break;
-                }
-                case GrammarType::SampledScan512: {
-                    benchmark_substring_random<SampledScanQueryGrammar<512>>(file, num_queries, "sampled_scan_512");
-                    break;
-                }
-                case GrammarType::SampledScan6400: {
-                    benchmark_substring_random<SampledScanQueryGrammar<6400>>(file, num_queries, "sampled_scan_6400");
-                    break;
-                }
-                case GrammarType::SampledScan25600: {
-                    benchmark_substring_random<SampledScanQueryGrammar<25600>>(file, num_queries, "sampled_scan_25600");
-                    break;
-                }
+            case GrammarType::Naive: {
+                benchmark_substring<NaiveQueryGrammar>(file, num_queries, substring_length, "naive");
+                break;
+            }
+            case GrammarType::SampledScan512: {
+                benchmark_substring<SampledScanQueryGrammar<512>>(file,
+                                                                  num_queries,
+                                                                  substring_length,
+                                                                  "sampled_scan_512");
+                break;
+            }
+            case GrammarType::SampledScan6400: {
+                benchmark_substring<SampledScanQueryGrammar<6400>>(file,
+                                                                   num_queries,
+                                                                   substring_length,
+                                                                   "sampled_scan_6400");
+                break;
+            }
+            case GrammarType::SampledScan25600: {
+                benchmark_substring<SampledScanQueryGrammar<25600>>(file,
+                                                                    num_queries,
+                                                                    substring_length,
+                                                                    "sampled_scan_25600");
+                break;
+            }
+            case GrammarType::LzEnd: {
+                benchmark_substring<lz::LzEnd>(file, num_queries, substring_length, "lzend");
+                break;
             }
         }
     } else if (decode) {

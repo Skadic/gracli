@@ -4,18 +4,20 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <utility>
 #include <vector>
 
 #include <concepts.hpp>
 #include <grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
 
+#include "lzend.hpp"
 #include <compute_lzend.hpp>
 #include <malloc_count.h>
 
 namespace gracli {
 
-template<Queryable Grm>
+template<typename Grm>
 struct QGrammarResult {
     Grm     gr;
     size_t  source_length;
@@ -38,19 +40,19 @@ struct QGrammarResult {
         constr_space_delta{constr_space_delta} {}
 };
 
-template<Queryable Grm>
-inline QGrammarResult<Grm> build_query_grammar(std::string &file) {
+template<typename Grm>
+inline QGrammarResult<Grm> build_random_access(const std::string &file) {
 
     std::chrono::steady_clock::time_point begin       = std::chrono::steady_clock::now();
-    int64_t                               space_begin = malloc_count_current();
+    size_t                                space_begin = malloc_count_current();
 
     Grammar gr = Grammar::from_file(file);
 
     std::chrono::steady_clock::time_point end       = std::chrono::steady_clock::now();
-    int64_t                               space_end = malloc_count_current();
+    size_t                                space_end = malloc_count_current();
 
     auto    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-    int64_t decode_space_delta = space_end - space_begin;
+    int64_t decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     begin       = std::chrono::steady_clock::now();
     space_begin = malloc_count_current();
@@ -65,30 +67,35 @@ inline QGrammarResult<Grm> build_query_grammar(std::string &file) {
     auto    constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     int64_t constr_space_delta = space_end - space_begin;
 
-    return QGrammarResult<Grm>(std::move(qgr),
-                               source_length,
-                               decode_time,
-                               constr_time,
-                               decode_space_delta,
-                               constr_space_delta);
+    return {std::move(qgr), source_length, decode_time, constr_time, decode_space_delta, constr_space_delta};
 }
 
 template<>
-inline QGrammarResult<std::string> build_query_grammar<std::string>(std::string &file) {
-
+inline QGrammarResult<std::string> build_random_access<std::string>(const std::string &file) {
     Grammar gr = Grammar::from_file(file);
 
-    int64_t     space_begin        = malloc_count_current();
+    size_t      space_begin        = malloc_count_current();
     std::string source             = gr.reproduce();
-    int64_t     space_end          = malloc_count_current();
+    size_t      space_end          = malloc_count_current();
     auto        source_length      = source.length();
-    int64_t     decode_space_delta = space_end - space_begin;
+    int64_t     decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
-    return QGrammarResult<std::string>(std::move(source), source_length, 0, 0, decode_space_delta, 0);
+    return {std::move(source), source_length, 0, 0, decode_space_delta, 0};
 }
 
-template<Queryable Grm>
-void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_t num_queries, std::string name) {
+template<>
+inline QGrammarResult<lz::LzEnd> build_random_access<lz::LzEnd>(const std::string &file) {
+    size_t    space_begin        = malloc_count_current();
+    lz::LzEnd lz_end             = lz::LzEnd::from_file(file);
+    size_t    space_end          = malloc_count_current();
+    auto      decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
+
+    size_t source_length = lz_end.source_length();
+    return {std::move(lz_end), source_length, 0, 0, decode_space_delta, 0};
+}
+
+template<CharRandomAccess Grm>
+void benchmark_random_access(QGrammarResult<Grm> &&data, const std::string &file, size_t num_queries, const std::string& name) {
     srand(time(nullptr));
 
     Grm &qgr = data.gr;
@@ -124,19 +131,19 @@ void benchmark_random_access(QGrammarResult<Grm> &data, std::string &file, size_
               << " query_time_total=" << query_time_total << std::endl;
 }
 
-template<Queryable Grm>
-void benchmark_random_access(std::string &file, size_t num_queries, std::string name) {
-    QGrammarResult<Grm> result = build_query_grammar<Grm>(file);
+template<CharRandomAccess Grm>
+void benchmark_random_access(const std::string &file, size_t num_queries, const std::string &name) {
+    QGrammarResult<Grm> result = build_random_access<Grm>(file);
 
-    benchmark_random_access<Grm>(result, file, num_queries, name);
+    benchmark_random_access<Grm>(std::move(result), file, num_queries, name);
 }
 
-template<gracli::Queryable Grm>
-void benchmark_substring(QGrammarResult<Grm> &data,
-                         std::string          file,
+template<Substring Grm>
+void benchmark_substring(QGrammarResult<Grm> &&data,
+                         const std::string   &file,
                          size_t               num_queries,
                          size_t               length,
-                         std::string          name) {
+                         const std::string   &name) {
     srand(time(nullptr));
 
     Grm &qgr = data.gr;
@@ -174,12 +181,11 @@ void benchmark_substring(QGrammarResult<Grm> &data,
               << std::endl;
 }
 
-template<>
-void benchmark_substring(QGrammarResult<std::string> &data,
-                         std::string                  file,
+void benchmark_substring(QGrammarResult<std::string> &&data,
+                         const std::string           &file,
                          size_t                       num_queries,
                          size_t                       length,
-                         std::string                  name) {
+                         const std::string           &name) {
     srand(time(nullptr));
 
     std::string &qgr = data.gr;
@@ -220,54 +226,15 @@ void benchmark_substring(QGrammarResult<std::string> &data,
               << std::endl;
 }
 
-template<gracli::Queryable Grm>
+template<Substring Grm>
 void benchmark_substring(std::string file, size_t num_queries, size_t length, std::string name) {
-    QGrammarResult<Grm> result = build_query_grammar<Grm>(file);
-    benchmark_substring<Grm>(result, file, num_queries, length, name);
+    QGrammarResult<Grm> result = build_random_access<Grm>(file);
+    benchmark_substring<Grm>(std::move(result), file, num_queries, length, name);
 }
 
-template<gracli::Queryable Grm>
-void benchmark_substring_random(QGrammarResult<Grm> &data, std::string file, size_t num_queries, std::string name) {
-    srand(time(nullptr));
-
-    Grm &qgr = data.gr;
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    size_t                                c     = 0;
-    for (size_t i = 0; i < num_queries; i++) {
-        size_t      idx      = rand() % data.source_length;
-        std::string accessed = qgr.substr(idx, rand() % (data.source_length - idx));
-        c += accessed.length();
-    }
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    // so the calls are hopefully not optimized away
-    if (c < 0) {
-        std::cout << c;
-    }
-
-    std::string file_name;
-    auto        last = file.find_last_of('/');
-    if (last < std::string::npos) {
-        file_name = file.substr(last + 1);
-    } else {
-        file_name = file;
-    }
-
-    std::cout << "RESULT"
-              << " type=substring_random"
-              << " ds=" << name << " input_file=" << file_name << " input_size=" << data.source_length
-              << " num_queries=" << num_queries << " constr_time=" << data.constr_time
-              << " decode_space_delta=" << data.decode_space_delta
-              << " construction_space_delta=" << data.constr_space_delta << " decode_time=" << data.decode_time
-              << " query_time_total=" << query_time_total << std::endl;
-}
-
-template<gracli::Queryable Grm>
-void benchmark_substring_random(std::string file, size_t num_queries, std::string name) {
-    QGrammarResult<Grm> result = build_query_grammar<Grm>(file);
-    benchmark_substring_random(result, file, num_queries, name);
+void benchmark_substring(std::string file, size_t num_queries, size_t length, const std::string &name) {
+    QGrammarResult<std::string> result = build_random_access<std::string>(file);
+    benchmark_substring(std::move(result), file, num_queries, length, name);
 }
 
 } // namespace gracli

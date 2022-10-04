@@ -3,6 +3,7 @@
 #include <bm64.h>
 #include <compute_lzend.hpp>
 #include <cstdint>
+#include <fstream>
 #include <numeric>
 #include <util/permutation.hpp>
 
@@ -56,7 +57,7 @@ class LzEnd {
     size_t m_source_length;
 
   public:
-    const size_t num_phrases() const { return m_last.size(); }
+    size_t num_phrases() const { return m_last.size(); }
 
   private:
     size_t rank1_last_pos(const size_t i) const { return m_last_pos.rank(i, *m_last_pos_rs); }
@@ -148,7 +149,9 @@ class LzEnd {
             while (i == start && phrase_index < n_phrases) {
                 m_source_begin.set_bit(bit_index++);
                 phrase_index++;
-                start = phrases[source_map_raw[phrase_index]].first;
+                if (phrase_index < n_phrases) {
+                    start = phrases[source_map_raw[phrase_index]].first;
+                }
             }
             bit_index++;
         }
@@ -182,29 +185,49 @@ class LzEnd {
         m_source_map.construct(source_map_raw);
     }
 
-  public:
-    LzEnd(const std::string &file) :
+    LzEnd() :
         m_last{},
         m_last_pos{},
         m_last_pos_rs{new RankSelect()},
         m_source_begin{},
         m_source_begin_rs{new RankSelect()},
         m_source_map{},
-        m_source_length{0} {
-        std::ifstream     in(file, std::ios::binary);
-        std::vector<Char> input((std::istream_iterator<Char>(in)), std::istream_iterator<Char>());
-        m_source_length = input.size();
-        compute_lzend<Char, TextOffset>(input.data(), m_source_length, &m_parsing);
-        build_aux_ds();
-        std::cout << "B: ";
-        print_bv(m_last_pos);
-        std::cout << "S: ";
-        print_bv(m_source_begin);
-        std::cout << "P: ";
-        print_perm(m_source_map);
-    }
+        m_source_length{0} {}
 
   public:
+    LzEnd(LzEnd &&other) noexcept :
+        m_parsing{std::move(other.m_parsing)},
+        m_last{std::move(other.m_last)},
+        m_last_pos{std::move(other.m_last_pos)},
+        m_last_pos_rs{std::move(other.m_last_pos_rs)},
+        m_source_begin{std::move(other.m_source_begin)},
+        m_source_begin_rs{std::move(other.m_source_begin_rs)},
+        m_source_map{std::move(other.m_source_map)},
+        m_source_length{other.m_source_length} {
+        m_last_pos.build_rs_index(m_last_pos_rs.get());
+        m_source_begin.build_rs_index(m_source_begin_rs.get());
+    }
+
+    static LzEnd from_file(const std::string &file) {
+        std::ifstream in(file, std::ios::binary);
+        return from_stream(in);
+    }
+
+    static LzEnd from_string(const std::string &str) {
+        std::istringstream in(str);
+        return from_stream(in);
+    }
+
+    static LzEnd from_stream(std::istream &stream) {
+        LzEnd instance;
+        std::noskipws(stream);
+        std::vector<Char> input((std::istream_iterator<Char>(stream)), std::istream_iterator<Char>());
+        instance.m_source_length = input.size();
+        compute_lzend<Char, TextOffset>(input.data(), instance.m_source_length, &instance.m_parsing);
+        instance.build_aux_ds();
+        return instance;
+    }
+
     char at(size_t i) const {
         char c;
         substr(&c, i, 1);
@@ -292,7 +315,7 @@ class LzEnd {
         return buf;
     }
 
-    size_t size() const { return m_source_length; }
+    size_t source_length() const { return m_source_length; }
 };
 
 } // namespace gracli::lz

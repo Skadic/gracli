@@ -6,10 +6,14 @@
 
 namespace gracli {
 
-template<typename GrammarType>
-concept Queryable = requires(GrammarType gr, size_t i) {
-                        { gr.at(i) } -> std::convertible_to<char>;
-                        { gr.substr(i, i) } -> std::convertible_to<std::string>;
+template<typename T>
+concept Substring = requires(T gr, char *ptr, size_t i) {
+                        { gr.substr(ptr, i, i) } -> std::convertible_to<char *>;
                     };
+
+template<typename T>
+concept CharRandomAccess = requires(T gr, char *ptr, size_t i) {
+                               { gr.at(i) } -> std::convertible_to<char>;
+                           };
 
 } // namespace gracli
