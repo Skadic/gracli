@@ -137,7 +137,7 @@ class Permutation {
         m_shortcut_buf.resize(word_packing::num_packs_required<Pack>(shortcut_count, m_word_width));
         auto              shortcuts = word_packing::accessor<Pack>(m_shortcut_buf.data(), m_word_width);
         BitVec::size_type shortcut_pos;
-        for (int i = 1; i < shortcut_count + 1; ++i) {
+        for (size_t i = 1; i < shortcut_count + 1; ++i) {
             m_shortcut_pos.select(i, shortcut_pos, *m_shortcut_pos_rs);
             shortcuts[i - 1] = shortcut_dest_raw[shortcut_pos];
         }

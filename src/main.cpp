@@ -1,8 +1,8 @@
 #include <cstdint>
 
+#include "lzend/lzend.hpp"
 #include <benchmark/bench.hpp>
 #include <cmdline_parser.hpp>
-#include <lzend.hpp>
 #include <naive_query_grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
 
@@ -16,15 +16,6 @@ enum class GrammarType : uint8_t {
 };
 
 int main(int argc, char **argv) {
-
-    // gracli::lz::LzEnd l("build/test.txt");
-
-    // auto n = 5;
-    // for (int i = 0; i < l.source_length() - n + 1; i++) {
-    //     char buf[20];
-    //     l.substr(buf, i, n);
-    //     std::cout << buf << std::endl;
-    // }
 
     tlx::CmdlineParser cp;
 

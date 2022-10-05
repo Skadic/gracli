@@ -11,7 +11,7 @@
 #include <grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
 
-#include "lzend.hpp"
+#include <lzend/lzend.hpp>
 #include <compute_lzend.hpp>
 #include <malloc_count.h>
 
@@ -51,7 +51,7 @@ inline QGrammarResult<Grm> build_random_access(const std::string &file) {
     std::chrono::steady_clock::time_point end       = std::chrono::steady_clock::now();
     size_t                                space_end = malloc_count_current();
 
-    auto    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    size_t    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     int64_t decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     begin       = std::chrono::steady_clock::now();
@@ -64,8 +64,8 @@ inline QGrammarResult<Grm> build_random_access(const std::string &file) {
     end       = std::chrono::steady_clock::now();
     space_end = malloc_count_current();
 
-    auto    constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-    int64_t constr_space_delta = space_end - space_begin;
+    size_t    constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    int64_t constr_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     return {std::move(qgr), source_length, decode_time, constr_time, decode_space_delta, constr_space_delta};
 }
@@ -85,17 +85,39 @@ inline QGrammarResult<std::string> build_random_access<std::string>(const std::s
 
 template<>
 inline QGrammarResult<lz::LzEnd> build_random_access<lz::LzEnd>(const std::string &file) {
-    size_t    space_begin        = malloc_count_current();
-    lz::LzEnd lz_end             = lz::LzEnd::from_file(file);
-    size_t    space_end          = malloc_count_current();
-    auto      decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
+    using namespace lz;
+
+    std::ifstream in(file, std::ios::binary);
+    std::noskipws(in);
+    LzEnd::Parsing                        parsing;
+    size_t                                input_size;
+    size_t                                space_begin;
+    std::chrono::steady_clock::time_point begin;
+    {
+        // We want to deallocate the vector after construction
+        std::vector<LzEnd::Char> input((std::istream_iterator<LzEnd::Char>(in)), std::istream_iterator<LzEnd::Char>());
+        input_size  = input.size();
+        space_begin = malloc_count_current();
+        begin       = std::chrono::steady_clock::now();
+        compute_lzend(input.data(), input.size(), &parsing);
+    }
+
+    lz::LzEnd                             lz_end    = lz::LzEnd::from_parsing(std::move(parsing), input_size);
+    size_t                                space_end = malloc_count_current();
+    std::chrono::steady_clock::time_point end       = std::chrono::steady_clock::now();
+
+    size_t  constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    int64_t constr_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     size_t source_length = lz_end.source_length();
-    return {std::move(lz_end), source_length, 0, 0, decode_space_delta, 0};
+    return {std::move(lz_end), source_length, 0, constr_time, 0, constr_space_delta};
 }
 
 template<CharRandomAccess Grm>
-void benchmark_random_access(QGrammarResult<Grm> &&data, const std::string &file, size_t num_queries, const std::string& name) {
+void benchmark_random_access(QGrammarResult<Grm> &&data,
+                             const std::string    &file,
+                             size_t                num_queries,
+                             const std::string    &name) {
     srand(time(nullptr));
 
     Grm &qgr = data.gr;
@@ -140,10 +162,10 @@ void benchmark_random_access(const std::string &file, size_t num_queries, const 
 
 template<Substring Grm>
 void benchmark_substring(QGrammarResult<Grm> &&data,
-                         const std::string   &file,
-                         size_t               num_queries,
-                         size_t               length,
-                         const std::string   &name) {
+                         const std::string    &file,
+                         size_t                num_queries,
+                         size_t                length,
+                         const std::string    &name) {
     srand(time(nullptr));
 
     Grm &qgr = data.gr;
@@ -182,10 +204,10 @@ void benchmark_substring(QGrammarResult<Grm> &&data,
 }
 
 void benchmark_substring(QGrammarResult<std::string> &&data,
-                         const std::string           &file,
-                         size_t                       num_queries,
-                         size_t                       length,
-                         const std::string           &name) {
+                         const std::string            &file,
+                         size_t                        num_queries,
+                         size_t                        length,
+                         const std::string            &name) {
     srand(time(nullptr));
 
     std::string &qgr = data.gr;

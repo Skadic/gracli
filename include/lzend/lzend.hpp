@@ -1,23 +1,25 @@
 #pragma once
 
-#include <bm64.h>
+#include "bm64.h"
 #include <compute_lzend.hpp>
+#include "util/permutation.hpp"
 #include <cstdint>
 #include <fstream>
 #include <numeric>
-#include <util/permutation.hpp>
 
 namespace gracli::lz {
 
 class LzEnd {
+  public:
     using Char       = uint8_t;
-    using TextOffset = uint32_t;
+    using TextOffset = uint64_t;
     using Phrase     = lzend_phrase<Char, TextOffset, TextOffset>;
     using Parsing    = space_efficient_vector<Phrase>;
 
     using BitVec     = bm::bvector<>;
     using RankSelect = BitVec::rs_index_type;
 
+  private:
     Parsing m_parsing;
 
     /**
@@ -87,7 +89,7 @@ class LzEnd {
         size_t current_index = 0;
 
         // Calculate all end positions of phrases and store them
-        for (int i = 0; i < n_phrases; i++) {
+        for (size_t i = 0; i < n_phrases; i++) {
             Phrase &f = m_parsing[i];
             m_last.push_back(f.m_char);
             current_index += f.m_len;
@@ -103,15 +105,12 @@ class LzEnd {
         phrases.reserve(n_phrases);
 
         current_index = 0;
-        for (int i = 0; i < n_phrases; i++) {
+        for (size_t i = 0; i < n_phrases; i++) {
             Phrase &f = m_parsing[i];
             if (f.m_len == 1) {
                 phrases.emplace_back(0, f);
                 continue;
             }
-
-            // The phrase's source
-            Phrase &src = m_parsing[f.m_link];
 
             size_t src_end   = select1_last_pos(f.m_link + 1);
             size_t src_start = src_end - f.m_len + 2;
@@ -145,7 +144,7 @@ class LzEnd {
 
         // We iterate through the phrases in order of their source's appearance in the text
         // For every phrase that starts at a certain index, we place a 1, then we place a 0 (with a no-op) and repeat
-        for (int i = 0; i < n; i++) {
+        for (size_t i = 0; i < n; i++) {
             while (i == start && phrase_index < n_phrases) {
                 m_source_begin.set_bit(bit_index++);
                 phrase_index++;
@@ -169,7 +168,7 @@ class LzEnd {
             current_source_count[src_start + 1]++;
         }
         // Prefix sum. This is basically equivalent to a prefix sum over S
-        for (int i = 2; i < n + 1; ++i) {
+        for (size_t i = 2; i < n + 1; ++i) {
             current_source_count[i] += current_source_count[i - 1] + 1;
             current_source_count[i - 1]++;
         }
@@ -204,8 +203,8 @@ class LzEnd {
         m_source_begin_rs{std::move(other.m_source_begin_rs)},
         m_source_map{std::move(other.m_source_map)},
         m_source_length{other.m_source_length} {
-        m_last_pos.build_rs_index(m_last_pos_rs.get());
-        m_source_begin.build_rs_index(m_source_begin_rs.get());
+        //m_last_pos.build_rs_index(m_last_pos_rs.get());
+        //m_source_begin.build_rs_index(m_source_begin_rs.get());
     }
 
     static LzEnd from_file(const std::string &file) {
@@ -213,17 +212,26 @@ class LzEnd {
         return from_stream(in);
     }
 
+    static LzEnd from_parsed_file(const std::string &file);
+
     static LzEnd from_string(const std::string &str) {
         std::istringstream in(str);
         return from_stream(in);
     }
 
     static LzEnd from_stream(std::istream &stream) {
-        LzEnd instance;
         std::noskipws(stream);
         std::vector<Char> input((std::istream_iterator<Char>(stream)), std::istream_iterator<Char>());
-        instance.m_source_length = input.size();
-        compute_lzend<Char, TextOffset>(input.data(), instance.m_source_length, &instance.m_parsing);
+
+        Parsing parsing;
+        compute_lzend<Char, TextOffset>(input.data(), input.size(), &parsing);
+        return from_parsing(std::move(parsing), input.size());
+    }
+
+    static LzEnd from_parsing(Parsing &&parsing, size_t source_length) {
+        LzEnd instance;
+        instance.m_parsing = std::move(parsing);
+        instance.m_source_length = source_length;
         instance.build_aux_ds();
         return instance;
     }
@@ -333,3 +341,5 @@ class LzEnd {
 };
 
 } // namespace gracli::lz
+
+#include "lzend_coder.hpp"

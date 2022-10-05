@@ -65,6 +65,9 @@ target_link_libraries(libgracli INTERFACE lzend)
 # BitMagic
 target_include_directories(libgracli INTERFACE external/BitMagic/src)
 
+# Some compile options
+target_compile_options(libgracli INTERFACE -Werror=return-type)
+
 # -- executable --
 add_executable(gracli src/main.cpp)
 target_link_libraries(gracli libgracli)
