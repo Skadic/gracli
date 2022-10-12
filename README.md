@@ -16,5 +16,11 @@ make
 
 ## Attributions
 
-This project uses the [LZ-End Toolkit](https://github.com/dominikkempa/lz-end-toolkit) by Dominik Kempa and Dmitry Kosobolov:
+### LZ-End-Toolkit
+
+We use the [LZ-End Toolkit](https://github.com/dominikkempa/lz-end-toolkit) by Dominik Kempa and Dmitry Kosobolov:
 Dominik Kempa and Dmitry Kosolobov: LZ-End Parsing in Compressed Space. Data Compression Conference (DCC), IEEE, 2017.
+
+### BitMagic
+
+We use the [BitMagic](https://github.com/tlk00/BitMagic) library for succinct bitvectors.
