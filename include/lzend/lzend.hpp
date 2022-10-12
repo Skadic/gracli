@@ -1,11 +1,13 @@
 #pragma once
 
 #include "bm64.h"
-#include <compute_lzend.hpp>
+#include "malloc_count.h"
 #include "util/permutation.hpp"
+#include <compute_lzend.hpp>
 #include <cstdint>
 #include <fstream>
 #include <numeric>
+#include <iostream>
 
 namespace gracli::lz {
 
@@ -20,7 +22,6 @@ class LzEnd {
     using RankSelect = BitVec::rs_index_type;
 
   private:
-    Parsing m_parsing;
 
     /**
      * @brief Stores the last character of each phrase contiguously.
@@ -78,19 +79,25 @@ class LzEnd {
         return pos;
     }
 
-    void build_aux_ds() {
-        size_t n_phrases = m_parsing.size();
+    void build_aux_ds(Parsing &&parsing) {
+        size_t n_phrases = parsing.size();
         size_t n         = m_source_length;
+        // The number of bits required to differentiate all phrases
+        size_t phrase_count_bits = ceil(log2((double) n_phrases));
+        // The number of bits required to index the input
+        size_t index_bits = ceil(log2((double) n));
 
-        m_last.reserve(n_phrases);
-        m_last_pos.resize(n);
-        m_source_begin.resize(n + n_phrases);
+        size_t mem;
+        size_t prev = malloc_count_current();
+
+        m_last.reserve(n_phrases + 1);
+        m_last_pos.resize(n + 1);
 
         size_t current_index = 0;
 
-        // Calculate all end positions of phrases and store them
+        // Calculate all end positions of phrase_source_start and store them
         for (size_t i = 0; i < n_phrases; i++) {
-            Phrase &f = m_parsing[i];
+            Phrase &f = parsing[i];
             m_last.push_back(f.m_char);
             current_index += f.m_len;
             m_last_pos.set(current_index - 1);
@@ -100,37 +107,38 @@ class LzEnd {
         m_last_pos.freeze();
         m_last_pos.build_rs_index(m_last_pos_rs.get());
 
-        // Calculate the pairs of phrases and the start indices of their sources
-        std::vector<std::pair<size_t, Phrase &>> phrases;
-        phrases.reserve(n_phrases);
+        // Calculate the start indices of their phrase_source_start' sources
+        std::vector<size_t> phrase_buffer;
+        phrase_buffer.resize(word_packing::num_packs_required<size_t>(n_phrases, index_bits));
+        auto phrase_source_start = word_packing::accessor(phrase_buffer.data(), index_bits);
 
         current_index = 0;
         for (size_t i = 0; i < n_phrases; i++) {
-            Phrase &f = m_parsing[i];
+            Phrase &f = parsing[i];
             if (f.m_len == 1) {
-                phrases.emplace_back(0, f);
+                phrase_source_start[i] = 0;
                 continue;
             }
 
             size_t src_end   = select1_last_pos(f.m_link + 1);
             size_t src_start = src_end - f.m_len + 2;
-            phrases.emplace_back(src_start + 1, f);
+            phrase_source_start[i] = src_start + 1;
         }
+
+        // Drop the parsing. It is not needed anymore
+        { auto drop = std::move(parsing); }
 
         // for now this is used as a buffer to keep track of the sources
         // sorted ascending by their source's start index in the text
-        std::vector<TextOffset> source_map_raw(m_last.size());
+        // TODO This doesn't really need to be a real vec. A compressed vec would work too but stl functions don't work
+        std::vector<TextOffset> source_map_raw;
         source_map_raw.resize(n_phrases);
         std::iota(source_map_raw.begin(), source_map_raw.end(), 0);
 
         std::stable_sort(source_map_raw.begin(), source_map_raw.end(), [&](const int &l, const int &r) {
-            auto &lhs = phrases[l];
-            auto &rhs = phrases[r];
-            if (lhs.first != rhs.first) {
-                return lhs.first < rhs.first;
-            } else {
-                return lhs.second.m_len < rhs.second.m_len;
-            }
+            auto lhs = phrase_source_start[l];
+            auto rhs = phrase_source_start[r];
+            return lhs < rhs;
         });
 
         // Calculate the amount of sources starting at each index
@@ -140,16 +148,17 @@ class LzEnd {
         // The phrase we are currently handling
         size_t phrase_index = 0;
         // The start index of the current phrase's source
-        size_t start = phrases[source_map_raw[phrase_index]].first;
+        size_t start = phrase_source_start[source_map_raw[phrase_index]];
 
-        // We iterate through the phrases in order of their source's appearance in the text
+        m_source_begin.resize(n + n_phrases);
+        // We iterate through the phrase_source_start in order of their source's appearance in the text
         // For every phrase that starts at a certain index, we place a 1, then we place a 0 (with a no-op) and repeat
         for (size_t i = 0; i < n; i++) {
             while (i == start && phrase_index < n_phrases) {
                 m_source_begin.set_bit(bit_index++);
                 phrase_index++;
                 if (phrase_index < n_phrases) {
-                    start = phrases[source_map_raw[phrase_index]].first;
+                    start = phrase_source_start[source_map_raw[phrase_index]];
                 }
             }
             bit_index++;
@@ -164,7 +173,8 @@ class LzEnd {
         // Calculate the actual source mapping
         // We first count how many sources start at each index in the text
         std::vector<TextOffset> current_source_count(n + 1);
-        for (auto &[src_start, phrase] : phrases) {
+        for (size_t i = 0; i < n_phrases; i++) {
+            size_t src_start = phrase_source_start[i];
             current_source_count[src_start + 1]++;
         }
         // Prefix sum. This is basically equivalent to a prefix sum over S
@@ -173,9 +183,10 @@ class LzEnd {
             current_source_count[i - 1]++;
         }
 
-        // We map the phrases in B to 1s in S
+        // We map the phrase_source_start in B to 1s in S
         size_t id = 0;
-        for (auto &[src_start, factor] : phrases) {
+        for (size_t i = 0; i < n_phrases; i++) {
+            size_t src_start = phrase_source_start[i];
             // For every index in the source text, there is a string 1^k0 in S, such that the number of 1s denotes the
             // number of sources starting at that index This is the index in S at which this 1^k0 is situated
             source_map_raw[id++] = rank1_source_begin(current_source_count[src_start]++) - 1;
@@ -195,7 +206,6 @@ class LzEnd {
 
   public:
     LzEnd(LzEnd &&other) noexcept :
-        m_parsing{std::move(other.m_parsing)},
         m_last{std::move(other.m_last)},
         m_last_pos{std::move(other.m_last_pos)},
         m_last_pos_rs{std::move(other.m_last_pos_rs)},
@@ -230,9 +240,8 @@ class LzEnd {
 
     static LzEnd from_parsing(Parsing &&parsing, size_t source_length) {
         LzEnd instance;
-        instance.m_parsing = std::move(parsing);
         instance.m_source_length = source_length;
-        instance.build_aux_ds();
+        instance.build_aux_ds(std::move(parsing));
         return instance;
     }
 

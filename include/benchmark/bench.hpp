@@ -11,8 +11,8 @@
 #include <grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
 
-#include <lzend/lzend.hpp>
 #include <compute_lzend.hpp>
+#include <lzend/lzend.hpp>
 #include <malloc_count.h>
 
 namespace gracli {
@@ -51,7 +51,7 @@ inline QGrammarResult<Grm> build_random_access(const std::string &file) {
     std::chrono::steady_clock::time_point end       = std::chrono::steady_clock::now();
     size_t                                space_end = malloc_count_current();
 
-    size_t    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    size_t  decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     int64_t decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     begin       = std::chrono::steady_clock::now();
@@ -64,7 +64,7 @@ inline QGrammarResult<Grm> build_random_access(const std::string &file) {
     end       = std::chrono::steady_clock::now();
     space_end = malloc_count_current();
 
-    size_t    constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    size_t  constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     int64_t constr_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     return {std::move(qgr), source_length, decode_time, constr_time, decode_space_delta, constr_space_delta};
@@ -86,31 +86,28 @@ inline QGrammarResult<std::string> build_random_access<std::string>(const std::s
 template<>
 inline QGrammarResult<lz::LzEnd> build_random_access<lz::LzEnd>(const std::string &file) {
     using namespace lz;
+    using TimePoint = std::chrono::steady_clock::time_point;
 
-    std::ifstream in(file, std::ios::binary);
-    std::noskipws(in);
-    LzEnd::Parsing                        parsing;
-    size_t                                input_size;
-    size_t                                space_begin;
-    std::chrono::steady_clock::time_point begin;
-    {
-        // We want to deallocate the vector after construction
-        std::vector<LzEnd::Char> input((std::istream_iterator<LzEnd::Char>(in)), std::istream_iterator<LzEnd::Char>());
-        input_size  = input.size();
-        space_begin = malloc_count_current();
-        begin       = std::chrono::steady_clock::now();
-        compute_lzend(input.data(), input.size(), &parsing);
-    }
+    // Decoding
+    size_t    space_begin        = malloc_count_current();
+    TimePoint begin              = std::chrono::steady_clock::now();
+    auto [parsing, input_size]   = decode(file);
+    TimePoint end                = std::chrono::steady_clock::now();
+    size_t    space_end          = malloc_count_current();
+    size_t    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    int64_t   decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
-    lz::LzEnd                             lz_end    = lz::LzEnd::from_parsing(std::move(parsing), input_size);
-    size_t                                space_end = malloc_count_current();
-    std::chrono::steady_clock::time_point end       = std::chrono::steady_clock::now();
-
+    // Construct DS
+    space_begin                = malloc_count_current();
+    begin                      = std::chrono::steady_clock::now();
+    lz::LzEnd lz_end           = lz::LzEnd::from_parsing(std::move(parsing), input_size);
+    space_end                  = malloc_count_current();
+    end                        = std::chrono::steady_clock::now();
     size_t  constr_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     int64_t constr_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     size_t source_length = lz_end.source_length();
-    return {std::move(lz_end), source_length, 0, constr_time, 0, constr_space_delta};
+    return {std::move(lz_end), source_length, decode_time, constr_time, decode_space_delta, constr_space_delta};
 }
 
 template<CharRandomAccess Grm>

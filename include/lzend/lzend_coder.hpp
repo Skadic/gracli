@@ -16,9 +16,6 @@ std::pair<LzEnd::Parsing, size_t> decode(const std::string &file_path) {
     const auto int_width= br.read_int<uint8_t>() + 1;
     const auto int_bytes = int_width / CHAR_BIT;
 
-    // TODO For the time being, this is assuming that int_width is a multiple of 8, in order to
-    //  implement little-endianness
-
     // We want to skip the next 6 bytes since they are still part of the header but don't contain any information
     br.read_int<uint64_t>(6 * CHAR_BIT);
 
@@ -26,11 +23,12 @@ std::pair<LzEnd::Parsing, size_t> decode(const std::string &file_path) {
 
     LzEnd::Parsing parsing;
 
-    constexpr size_t mask = 0xFF;
-
     while (!br.eof()) {
         const auto c = br.read_int<LzEnd::Char>(char_width);
         LzEnd::TextOffset prev_phrase = 0;
+
+        // TODO For the time being, this is assuming that int_width is a multiple of 8, in order to
+        //  implement little-endianness
         for (size_t i = 0; i < int_bytes; ++i) {
             const auto val = br.read_int<LzEnd::TextOffset>(CHAR_BIT);
             prev_phrase |= val << (i * CHAR_BIT);
