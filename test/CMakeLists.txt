@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.4.1 FATAL_ERROR)
 project(gracli_tests)
 
-file(COPY test_data DESTINATION .)
+file(DOWNLOAD https://ai.eecs.umich.edu/people/dreeves/Fox-In-Socks.txt test/test_data/fox.txt)
+file(COPY test_data/fox.txt.lzend DESTINATION test_data)
 
 # Tests
 enable_testing()

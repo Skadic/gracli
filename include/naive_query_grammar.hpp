@@ -90,6 +90,10 @@ class NaiveQueryGrammar {
         m_full_lengths                              = std::move(full_lengths);
     }
 
+    static NaiveQueryGrammar from_file(const std::string &path) {
+        return { Grammar::from_file(path) };
+    }
+
     /**
      * @brief Accesses the symbols vector for the rule of the given id
      *

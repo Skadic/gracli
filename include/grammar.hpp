@@ -64,7 +64,7 @@ class Grammar {
      * @param file_path The input file
      * @return The grammar
      */
-    static Grammar from_file(std::string file_path) {
+    static Grammar from_file(const std::string &file_path) {
         auto rules = GrammarTupleCoder::decode(file_path);
         auto n     = rules.size();
         return Grammar(std::move(rules), n - 1);

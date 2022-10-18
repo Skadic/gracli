@@ -47,7 +47,7 @@ std::pair<LzEnd::Parsing, size_t> decode(const std::string &file_path) {
     return std::make_pair(std::move(parsing), source_len);
 }
 
-LzEnd LzEnd::from_parsed_file(const std::string &file) {
+LzEnd LzEnd::from_file(const std::string &file) {
     auto [parsing, source_len] = decode(file);
     return from_parsing(std::move(parsing), source_len);
 }

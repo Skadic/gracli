@@ -217,12 +217,12 @@ class LzEnd {
         //m_source_begin.build_rs_index(m_source_begin_rs.get());
     }
 
-    static LzEnd from_file(const std::string &file) {
+    static LzEnd from_source_file(const std::string &file) {
         std::ifstream in(file, std::ios::binary);
         return from_stream(in);
     }
 
-    static LzEnd from_parsed_file(const std::string &file);
+    static LzEnd from_file(const std::string &file);
 
     static LzEnd from_string(const std::string &str) {
         std::istringstream in(str);

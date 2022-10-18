@@ -182,6 +182,10 @@ class SampledScanQueryGrammar {
         calculate_samples();
     }
 
+    static SampledScanQueryGrammar<sampling> from_file(const std::string &path) {
+        return { Grammar::from_file(path) };
+    }
+
     /**
      * @brief Accesses the symbols vector for the rule of the given id
      *
