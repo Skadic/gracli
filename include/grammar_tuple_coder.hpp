@@ -2,7 +2,6 @@
 
 #include "../external/word-packing/include/word_packing.hpp"
 #include "bit_input_stream.hpp"
-#include "bit_reader.hpp"
 #include "consts.hpp"
 #include <algorithm>
 #include <cmath>

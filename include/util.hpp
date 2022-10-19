@@ -4,6 +4,9 @@
 #include <bm64.h>
 #include <concepts>
 #include <limits>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace gracli {
 
@@ -12,7 +15,7 @@ T invalid() {
     return std::numeric_limits<T>().max();
 }
 
-void print_bv(bm::bvector<> &bv, size_t grouping = 8) {
+void print_bv(const bm::bvector<> &bv, const size_t grouping = 8) {
     size_t n = bv.size();
     for (size_t i = 1; i < bv.size() + 1; i++) {
         if ((i + (n % grouping) + 1) % grouping == 0) {
@@ -24,7 +27,7 @@ void print_bv(bm::bvector<> &bv, size_t grouping = 8) {
 }
 
 template<typename R>
-void print_range(R &r) {
+void print_range(const R &r) {
     std::cout << "[";
     bool is_first = true;
     for (auto v : r) {
@@ -38,7 +41,7 @@ void print_range(R &r) {
     std::cout << "]" << std::endl;
 }
 
-void print_perm(gracli::Permutation<> &p) {
+void print_perm(const gracli::Permutation<> &p) {
     std::cout << "[";
     bool is_first = true;
     for (size_t i = 0; i < p.size(); i++) {
@@ -48,6 +51,14 @@ void print_perm(gracli::Permutation<> &p) {
         std::cout << p.next(i);
     }
     std::cout << "]" << std::endl;
+}
+
+std::string read_to_string(const std::string &path) {
+    std::ifstream ifs(path);
+    std::noskipws(ifs);
+    std::stringstream ss;
+    ss << ifs.rdbuf();
+    return ss.str();
 }
 
 } // namespace gracli

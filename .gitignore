@@ -3,6 +3,10 @@ build/
 compile_commands.json
 *.grm
 *.seq*
+*.rp*
+
+# We want to include all test data
+!test/test_data/*
 
 /cmake-build-debug/
 /cmake-build-release/

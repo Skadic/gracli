@@ -25,4 +25,6 @@ template<typename T>
 concept SourceLength = requires(T ds) {
                            { ds.source_length() } -> std::convertible_to<size_t>;
                        };
+template<typename T>
+concept RandomAccess = CharRandomAccess<T> && Substring<T> && SourceLength<T>;
 } // namespace gracli
