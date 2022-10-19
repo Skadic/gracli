@@ -16,3 +16,6 @@
 [submodule "external/lz-end-toolkit"]
 	path = external/lz-end-toolkit
 	url = https://github.com/Skadic/lz-end-toolkit
+[submodule "external/progressbar"]
+	path = external/progressbar
+	url = https://github.com/gipert/progressbar

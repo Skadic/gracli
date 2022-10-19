@@ -1,11 +1,17 @@
+#include <algorithm>
 #include <cstdint>
 
 #include "lzend/lzend.hpp"
+#include <progressbar.hpp>
+
 #include <benchmark/bench.hpp>
 #include <cmdline_parser.hpp>
+#include <cstring>
 #include <filesystem>
+#include <iostream>
 #include <naive_query_grammar.hpp>
 #include <sampled_scan_query_grammar.hpp>
+#include <sstream>
 
 enum class GrammarType : uint8_t {
     ReproducedString,
@@ -17,14 +23,87 @@ enum class GrammarType : uint8_t {
 };
 
 template<gracli::FromFile DS>
-void query_interactive(const std::string &path) requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> && gracli::SourceLength<DS> {
+void verify_ds(const std::string &source_path, const std::string &compressed_path) requires gracli::Substring<DS> &&
+    gracli::CharRandomAccess<DS> && gracli::SourceLength<DS> {
+    if (!std::filesystem::exists(source_path)) {
+        std::cerr << "file " << source_path << " does not exist" << std::endl;
+        return;
+    }
+
+    if (!std::filesystem::exists(compressed_path)) {
+        std::cerr << "file " << compressed_path << " does not exist" << std::endl;
+        return;
+    }
+
+    std::string source;
+
+    {
+        std::ifstream ifs(source_path);
+        std::noskipws(ifs);
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+        source = ss.str();
+    }
+
+    DS     ds = DS::from_file(compressed_path);
+    size_t n  = source.length();
+
+    std::cout << "Checking Random Access..." << std::endl;
+    progressbar bar(100);
+    bar.set_done_char("=");
+#pragma omp parallel
+    {
+#pragma omp for
+        for (size_t i = 0; i < source.length(); i++) {
+            char src_char = source.at(i);
+            char ds_char  = ds.at(i);
+            if (src_char != ds_char) {
+                std::cerr << "random access at index " << i << " failed" << std::endl;
+#pragma omp cancel for
+            }
+            if (i % (n / 100) == 0) {
+#pragma omp critical
+                bar.update();
+            }
+        }
+    }
+
+    std::cout << "\nChecking substrings..." << std::endl;
+    bar.reset();
+#pragma omp parallel
+    {
+        char src_buf[11];
+        char ds_buf[11];
+        src_buf[10] = 0;
+        ds_buf[10]  = 0;
+#pragma omp for
+        for (size_t i = 0; i < n - 10; i++) {
+            source.copy(src_buf, 10, i);
+            ds.substr(ds_buf, i, 10);
+            if (strcmp(src_buf, ds_buf)) {
+                std::cerr << "substring at index " << i << " failed.\nexpected: \"" << src_buf
+                          << "\"\nactual: " << ds_buf << std::endl;
+#pragma omp cancel for
+            }
+            if (i % ((n - 10) / 100) == 0) {
+#pragma omp critical
+                bar.update();
+            }
+        }
+    }
+    std::cout << "\nVerification successful!" << std::endl;
+}
+
+template<gracli::FromFile DS>
+void query_interactive(const std::string &path) requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> &&
+    gracli::SourceLength<DS> {
     if (!std::filesystem::exists(path)) {
         std::cerr << "file " << path << " does not exist" << std::endl;
         return;
     }
-    DS ds = DS::from_file(path);
+    DS          ds = DS::from_file(path);
     std::string s;
-    size_t n = ds.source_length();
+    size_t      n = ds.source_length();
     while (true) {
         std::cout << "> ";
         std::cin >> s;
@@ -34,16 +113,16 @@ void query_interactive(const std::string &path) requires gracli::Substring<DS> &
             std::cout << "bounds => print the bounds of the string" << std::endl;
             std::cout << "<from>:<to> => access a substring" << std::endl;
             std::cout << "<index> => access a character" << std::endl;
-            continue ;
+            continue;
         }
 
         if (s == "exit" || s == "e" || s == "quit" || s == "q") {
-            return ;
+            return;
         }
-        
+
         if (s == "bounds" || s == "b") {
             std::cout << "bounds: [0, " << n - 1 << "] (string of " << n << " characters)" << std::endl;
-            continue ;
+            continue;
         }
 
         size_t colon_pos = s.find(':');
@@ -52,16 +131,16 @@ void query_interactive(const std::string &path) requires gracli::Substring<DS> &
             size_t i;
             try {
                 i = std::stoull(s);
-            } catch (std::invalid_argument const& e) {
+            } catch (std::invalid_argument const &e) {
                 std::cout << "Invalid index" << std::endl;
-                continue ;
-            } catch (std::out_of_range const& e) {
+                continue;
+            } catch (std::out_of_range const &e) {
                 std::cout << "Invalid index" << std::endl;
-                continue ;
+                continue;
             }
 
             std::cout << "s[" << i << "] = " << ds.at(i) << std::endl;
-            continue ;
+            continue;
         }
 
         size_t from, to;
@@ -77,20 +156,21 @@ void query_interactive(const std::string &path) requires gracli::Substring<DS> &
             } else {
                 to = n - 1;
             }
-        } catch (std::invalid_argument const& e) {
+        } catch (std::invalid_argument const &e) {
             std::cout << "Invalid index" << std::endl;
-            continue ;
-        } catch (std::out_of_range const& e) {
+            continue;
+        } catch (std::out_of_range const &e) {
             std::cout << "Invalid index" << std::endl;
-            continue ;
+            continue;
         }
 
         size_t len = to - from + 1;
         // We need this on the heap because this can get too large for the stack
         auto *buf = new char[len + 1];
-        buf[len] = 0;
+        buf[len]  = 0;
         ds.substr(buf, from, len);
-        std::cout << "s[" << (from != 0 ? std::to_string(from) : "") << ":" << (to != n - 1 ? std::to_string(to) : "") << "] = " << buf << std::endl;
+        std::cout << "s[" << (from != 0 ? std::to_string(from) : "") << ":" << (to != n - 1 ? std::to_string(to) : "")
+                  << "] = " << buf << std::endl;
         delete[] buf;
     }
 }
@@ -102,7 +182,10 @@ int main(int argc, char **argv) {
     cp.set_author("Etienne Palanga");
 
     std::string file;
-    cp.add_string('f', "file", file, "The input grammar file");
+    cp.add_string('f', "file", file, "The compressed input file");
+
+    std::string src_file;
+    cp.add_string('S', "source_file", src_file, "The uncompressed reference file for use with -v");
 
     bool interactive = false;
     cp.add_flag('i',
@@ -121,6 +204,13 @@ int main(int argc, char **argv) {
                 "substring",
                 substring,
                 "Benchmarks runtime of a Grammar's substring queries. Value is the number of queries.");
+
+    bool verify = false;
+    cp.add_flag('v',
+                "verify",
+                verify,
+                "Verifies that the given compressed file reprocudes the same characters as a given (uncompressed) "
+                "reference file.");
 
     unsigned int substring_length = 10;
     cp.add_unsigned('l',
@@ -144,7 +234,12 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    if (!(interactive || random_access || substring)) {
+    if (verify && (src_file.empty() || file.empty())) {
+        std::cerr << "Both -f and -S are needed to use -v" << std::endl;
+        return -1;
+    }
+
+    if (!(interactive || random_access || substring || verify)) {
         interactive = true;
     }
 
@@ -183,7 +278,35 @@ int main(int argc, char **argv) {
                 break;
             }
         }
-    } if (random_access) {
+    } else if (verify) {
+        switch (grammar_type) {
+            case GrammarType::ReproducedString: {
+                std::cerr << "Verification not supported on strings" << std::endl;
+                break;
+            }
+            case GrammarType::Naive: {
+                verify_ds<NaiveQueryGrammar>(src_file, file);
+                break;
+            }
+            case GrammarType::SampledScan512: {
+                verify_ds<SampledScanQueryGrammar<512>>(src_file, file);
+                break;
+            }
+            case GrammarType::SampledScan6400: {
+                verify_ds<SampledScanQueryGrammar<6400>>(src_file, file);
+                break;
+            }
+            case GrammarType::SampledScan25600: {
+                verify_ds<SampledScanQueryGrammar<25600>>(src_file, file);
+                break;
+            }
+            case GrammarType::LzEnd: {
+                verify_ds<lz::LzEnd>(src_file, file);
+                break;
+            }
+        }
+    }
+    if (random_access) {
         switch (grammar_type) {
             case GrammarType::ReproducedString: {
                 benchmark_random_access<std::string>(file, num_queries, "string");

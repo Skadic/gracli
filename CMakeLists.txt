@@ -3,7 +3,7 @@ project(gracli)
 
 # set C++ build flags
 set(CXX_STANDARD c++20)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=gnu++20 ${GCC_WARNINGS} -ldl")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=gnu++20 ${GCC_WARNINGS} -ldl -fopenmp")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
@@ -64,6 +64,8 @@ add_library(lzend external/lz-end-toolkit/extras/in-ram-parser/src/utils.cpp)
 target_link_libraries(libgracli INTERFACE lzend)
 # BitMagic
 target_include_directories(libgracli INTERFACE external/BitMagic/src)
+# progressbar
+target_include_directories(libgracli INTERFACE external/progressbar/include)
 
 # Some compile options
 target_compile_options(libgracli INTERFACE -Werror=return-type)
