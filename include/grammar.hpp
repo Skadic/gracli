@@ -7,6 +7,7 @@
 #include <functional>
 #include <iostream>
 #include <limits>
+#include <numeric>
 #include <sstream>
 #include <sys/types.h>
 #include <vector>
@@ -315,35 +316,66 @@ class Grammar {
     const inline bool empty() const { return rule_count() == 0; }
 
   private:
-    const inline size_t source_length(size_t id, std::vector<size_t> lookup) const {
-        std::vector<size_t> rule_lengths;
+    const inline size_t source_length(size_t id, std::vector<size_t> &lookup) const {
         constexpr auto      MAX = std::numeric_limits<size_t>().max();
-        rule_lengths.resize(rule_count(), MAX);
 
         size_t count = 0;
 
         for (auto &symbol : m_rules[id]) {
             if (is_terminal(symbol)) {
                 count++;
-            } else if (lookup[symbol - RULE_OFFSET] < MAX) {
-                count += lookup[symbol - RULE_OFFSET];
             } else {
-                auto symb_length             = source_length();
-                lookup[symbol - RULE_OFFSET] = symb_length;
-                count += symb_length;
+                if (lookup[symbol - RULE_OFFSET] == MAX) {
+                    lookup[symbol - RULE_OFFSET] = source_length(symbol - RULE_OFFSET, lookup);
+                }
+                count += lookup[symbol - RULE_OFFSET];
             }
         }
         return count;
     }
 
+    const inline size_t nonterminal_depth(size_t id, std::vector<size_t> &lookup) const {
+        constexpr auto      MAX = std::numeric_limits<size_t>().max();
+
+        size_t depth = 0;
+
+        for (auto &symbol : m_rules[id]) {
+            if (is_terminal(symbol)) {
+                continue;
+            } else {
+                if (lookup[symbol - RULE_OFFSET] == MAX) {
+                    lookup[symbol - RULE_OFFSET] = nonterminal_depth(symbol - RULE_OFFSET, lookup);
+                }
+                depth = std::max(depth, lookup[symbol - RULE_OFFSET]);
+            }
+        }
+        return depth + 1;
+    }
+
   public:
-    const inline size_t source_length() const {
+    const inline std::pair<size_t, double> source_and_avg_rule_length() const {
         std::vector<size_t> lookup;
         constexpr auto      MAX = std::numeric_limits<size_t>().max();
         lookup.resize(rule_count(), MAX);
-
-        return source_length(m_start_rule_id, lookup);
+        size_t source_len       = source_length(m_start_rule_id, lookup);
+        lookup[m_start_rule_id] = source_len;
+        double avg_len          = std::accumulate(lookup.cbegin(), lookup.cend(), 0.0) / rule_count();
+        return {source_len, avg_len};
     }
+
+    const inline std::pair<size_t, double> max_and_avg_rule_depth() const {
+        std::vector<size_t> lookup;
+        constexpr auto      MAX = std::numeric_limits<size_t>().max();
+        lookup.resize(rule_count(), MAX);
+        size_t depth            = nonterminal_depth(m_start_rule_id, lookup);
+        lookup[m_start_rule_id] = depth;
+        double avg_depth        = std::accumulate(lookup.cbegin(), lookup.cend(), 0.0) / rule_count();
+        return {depth, avg_depth};
+    }
+
+    const inline size_t source_length() const { return source_and_avg_rule_length().first; }
+
+    const inline size_t depth() const { return max_and_avg_rule_depth().first; }
 
     /**
      * @brief Checks whether a symbol is a terminal.

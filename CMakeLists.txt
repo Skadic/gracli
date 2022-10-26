@@ -8,6 +8,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -march=native")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -ggdb")
 
+set(OMP_CANCELLATION ON)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
@@ -35,6 +36,10 @@ ExternalProject_Add(malloc_count
   CONFIGURE_COMMAND ""
   INSTALL_COMMAND ""
 )
+add_library(libmalloc_count INTERFACE)
+# malloc_count
+target_include_directories(libmalloc_count INTERFACE external/malloc_count)
+target_link_libraries(libmalloc_count INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count/src/malloc_count-build/malloc_count.o)
 
 ## If ninja is used, this enables colored output for the build output
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
@@ -55,9 +60,6 @@ target_include_directories(libgracli INTERFACE external/word-packing/include)
 # tlx
 target_include_directories(libgracli INTERFACE external/tlx/tlx)
 target_link_libraries(libgracli INTERFACE tlx)
-# malloc_count
-target_include_directories(libgracli INTERFACE external/malloc_count)
-target_link_libraries(libgracli INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count/src/malloc_count-build/malloc_count.o)
 # lz-end-toolkit in-ram-parser
 target_include_directories(libgracli INTERFACE external/lz-end-toolkit/extras/in-ram-parser/include)
 add_library(lzend external/lz-end-toolkit/extras/in-ram-parser/src/utils.cpp)
@@ -66,13 +68,16 @@ target_link_libraries(libgracli INTERFACE lzend)
 target_include_directories(libgracli INTERFACE external/BitMagic/src)
 # progressbar
 target_include_directories(libgracli INTERFACE external/progressbar/include)
-
 # Some compile options
 target_compile_options(libgracli INTERFACE -Werror=return-type)
 
-# -- executable --
+# -- executables --
 add_executable(gracli src/main.cpp)
 target_link_libraries(gracli libgracli)
+target_link_libraries(gracli libmalloc_count)
+
+add_executable(grammar_stats src/grammar_stats.cpp)
+target_link_libraries(grammar_stats libgracli)
 
 # -- tests --
 add_subdirectory(test EXCLUDE_FROM_ALL)
