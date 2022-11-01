@@ -106,13 +106,38 @@ class Grammar {
 
   private:
     void renumber_internal(const size_t rule_id, size_t &count, std::vector<Symbol> &renumbering) {
-        Rule &symbols = m_rules[rule_id];
-        for (auto symbol : symbols) {
-            if (is_terminal(symbol) || renumbering[symbol - RULE_OFFSET] != invalid<Symbol>())
+        
+        std::vector<std::pair<const size_t, size_t>> rule_stack;
+        rule_stack.emplace_back(rule_id, 0);
+        while (!rule_stack.empty()) {
+            const auto &[current_id, i] = rule_stack.back();
+
+            // check if we're already done with this rule 
+            // If so, renumber it and move to the next one
+            if (i == m_rules[current_id].size()) {
+                renumbering[current_id] = count++;
+                rule_stack.pop_back();
                 continue;
-            renumber_internal(symbol - RULE_OFFSET, count, renumbering);
+            }
+
+
+            for (size_t idx = i; idx < m_rules[current_id].size(); idx++) {
+                size_t symbol = m_rules[current_id][idx];
+
+                // If this is a nonterminal and has no renumbering yet, break and handle that one first
+                if (is_non_terminal(symbol) && renumbering[symbol - RULE_OFFSET] == invalid<Symbol>()) {
+                    rule_stack.back().second = idx + 1;
+                    rule_stack.emplace_back(symbol - RULE_OFFSET, 0);
+                    break;
+                }
+
+                // if this is the last element (i.e. were done with this rule) set its renumbering
+                if (idx == m_rules[current_id].size() - 1) {
+                    renumbering[current_id] = count++;
+                    rule_stack.pop_back();
+                }
+            }
         }
-        renumbering[rule_id] = count++;
     }
 
   public:
@@ -317,7 +342,7 @@ class Grammar {
 
   private:
     const inline size_t source_length(size_t id, std::vector<size_t> &lookup) const {
-        constexpr auto      MAX = std::numeric_limits<size_t>().max();
+        constexpr auto MAX = std::numeric_limits<size_t>().max();
 
         size_t count = 0;
 
@@ -335,7 +360,7 @@ class Grammar {
     }
 
     const inline size_t nonterminal_depth(size_t id, std::vector<size_t> &lookup) const {
-        constexpr auto      MAX = std::numeric_limits<size_t>().max();
+        constexpr auto MAX = std::numeric_limits<size_t>().max();
 
         size_t depth = 0;
 

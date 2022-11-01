@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <iostream>
 #include <grammar.hpp>
 
@@ -11,6 +12,17 @@ int main(int argc, char **argv) {
 
     std::string file = argv[1];
 
+    if (std::filesystem::is_directory(file)) {
+        for (const auto& file : std::filesystem::directory_iterator(file)) {
+            if (file.is_directory()) {
+                continue;
+            }
+            char *args[2] = {nullptr, const_cast<char*>(static_cast<const char*>(file.path().c_str()))};
+            main(2, args);
+        }
+        return 0;
+    }
+
     std::string file_name;
     auto        last = file.find_last_of('/');
     if (last < std::string::npos) {
@@ -18,6 +30,7 @@ int main(int argc, char **argv) {
     } else {
         file_name = file;
     }
+
 
     const auto grm = Grammar::from_file(file);
 

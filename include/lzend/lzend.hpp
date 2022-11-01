@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bm64.h"
-#include "malloc_count.h"
 #include "util/permutation.hpp"
 #include <compute_lzend.hpp>
 #include <cstdint>
@@ -88,7 +87,6 @@ class LzEnd {
         size_t index_bits = ceil(log2((double) n));
 
         size_t mem;
-        size_t prev = malloc_count_current();
 
         m_last.reserve(n_phrases + 1);
         m_last_pos.resize(n + 1);
