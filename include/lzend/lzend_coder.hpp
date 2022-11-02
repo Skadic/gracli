@@ -3,7 +3,7 @@
 #include <utility>
 #include <string>
 
-#include <bit_input_stream.hpp>
+#include <util/bit_input_stream.hpp>
 #include <lzend/lzend.hpp>
 
 namespace gracli::lz {

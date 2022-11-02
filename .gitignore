@@ -4,6 +4,8 @@ compile_commands.json
 *.grm
 *.seq*
 *.rp*
+.vscode/
+.idea/
 
 # We want to include all test data
 !test/test_data/*

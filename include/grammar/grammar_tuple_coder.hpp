@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../external/word-packing/include/word_packing.hpp"
-#include "bit_input_stream.hpp"
-#include "consts.hpp"
+#include <word_packing.hpp>
+#include <util/bit_input_stream.hpp>
+#include <consts.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

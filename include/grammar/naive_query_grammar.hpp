@@ -7,7 +7,7 @@
 #include <iterator>
 #include <vector>
 
-#include <grammar.hpp>
+#include <grammar/grammar.hpp>
 #include <word_packing/packed_int_vector.hpp>
 
 namespace gracli {

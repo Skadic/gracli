@@ -9,8 +9,8 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
-#include <naive_query_grammar.hpp>
-#include <sampled_scan_query_grammar.hpp>
+#include <grammar/naive_query_grammar.hpp>
+#include <grammar/sampled_scan_query_grammar.hpp>
 #include <sstream>
 
 enum class GrammarType : uint8_t {

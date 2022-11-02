@@ -8,8 +8,8 @@
 #include <vector>
 
 #include <concepts.hpp>
-#include <grammar.hpp>
-#include <sampled_scan_query_grammar.hpp>
+#include <grammar/grammar.hpp>
+#include <grammar/sampled_scan_query_grammar.hpp>
 
 #include <compute_lzend.hpp>
 #include <lzend/lzend.hpp>

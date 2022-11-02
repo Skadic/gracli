@@ -7,7 +7,7 @@
 #include <ranges>
 #include <sstream>
 
-#include "grammar.hpp"
+#include <grammar/grammar.hpp>
 #include <word_packing.hpp>
 
 namespace gracli {
