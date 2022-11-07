@@ -65,7 +65,7 @@ class Grammar {
      * @param file_path The input file
      * @return The grammar
      */
-    static Grammar from_file(const std::string &file_path) {
+    static auto from_file(const std::string &file_path) -> Grammar {
         auto rules = GrammarTupleCoder::decode(file_path);
         auto n     = rules.size();
         return Grammar(std::move(rules), n - 1);
@@ -77,7 +77,7 @@ class Grammar {
      * @param id The rule id whose symbols vector to access
      * @return Symbols& A reference to the rule's symbols vector
      */
-    Rule &operator[](const size_t id) { return m_rules[id]; }
+    inline auto operator[](const size_t id) -> Rule & { return m_rules[id]; }
 
     /**
      * @brief Appends a terminal to the given rule's symbols vector
@@ -106,20 +106,19 @@ class Grammar {
 
   private:
     void renumber_internal(const size_t rule_id, size_t &count, std::vector<Symbol> &renumbering) {
-        
+
         std::vector<std::pair<const size_t, size_t>> rule_stack;
         rule_stack.emplace_back(rule_id, 0);
         while (!rule_stack.empty()) {
             const auto &[current_id, i] = rule_stack.back();
 
-            // check if we're already done with this rule 
+            // check if we're already done with this rule
             // If so, renumber it and move to the next one
             if (i == m_rules[current_id].size()) {
                 renumbering[current_id] = count++;
                 rule_stack.pop_back();
                 continue;
             }
-
 
             for (size_t idx = i; idx < m_rules[current_id].size(); idx++) {
                 size_t symbol = m_rules[current_id][idx];
@@ -234,7 +233,7 @@ class Grammar {
     }
 
   public:
-    std::string reproduce() {
+    auto reproduce() -> std::string {
         std::ostringstream oss;
 
         if (rule_count() == 0) {
@@ -292,7 +291,7 @@ class Grammar {
      *
      * @return const size_t The id of the start rule
      */
-    const inline size_t start_rule_id() const { return m_start_rule_id; }
+    inline auto start_rule_id() const -> const size_t { return m_start_rule_id; }
 
     /**
      * @brief Set the start rule id
@@ -308,7 +307,7 @@ class Grammar {
      *
      * @return const size_t The size of the grammar
      */
-    const size_t grammar_size() const {
+    auto grammar_size() const -> const size_t {
         auto count = 0;
         for (size_t rule_id = 0; rule_id < m_rules.size(); rule_id++) {
             count += m_rules[rule_id].size();
@@ -321,7 +320,7 @@ class Grammar {
      *
      * @return const size_t The rule count
      */
-    const inline size_t rule_count() const { return m_rules.size(); }
+    inline auto rule_count() const -> const size_t { return m_rules.size(); }
 
     /**
      * @brief Checks whether this grammar contains the rule with the given id
@@ -330,7 +329,7 @@ class Grammar {
      * @return true If the grammar contains the rule with the given id
      * @return false If the grammar does not contain the rule with the given id
      */
-    const inline bool contains_rule(size_t id) const { return m_rules.size() < id && !m_rules[id].empty(); }
+    inline auto contains_rule(size_t id) const -> const bool { return m_rules.size() < id && !m_rules[id].empty(); }
 
     /**
      * @brief Checks whether the grammar is empty
@@ -338,10 +337,10 @@ class Grammar {
      * @return true If the grammar contains no rules
      * @return false If the grammar contains rules
      */
-    const inline bool empty() const { return rule_count() == 0; }
+    inline auto empty() const -> const bool { return rule_count() == 0; }
 
   private:
-    const inline size_t source_length(size_t id, std::vector<size_t> &lookup) const {
+    inline auto source_length(size_t id, std::vector<size_t> &lookup) const -> const size_t {
         constexpr auto MAX = std::numeric_limits<size_t>().max();
 
         size_t count = 0;
@@ -359,7 +358,7 @@ class Grammar {
         return count;
     }
 
-    const inline size_t nonterminal_depth(size_t id, std::vector<size_t> &lookup) const {
+    inline auto nonterminal_depth(size_t id, std::vector<size_t> &lookup) const -> const size_t {
         constexpr auto MAX = std::numeric_limits<size_t>().max();
 
         size_t depth = 0;
@@ -378,7 +377,7 @@ class Grammar {
     }
 
   public:
-    const inline std::pair<size_t, double> source_and_avg_rule_length() const {
+    inline auto source_and_avg_rule_length() const -> const std::pair<size_t, double> {
         std::vector<size_t> lookup;
         constexpr auto      MAX = std::numeric_limits<size_t>().max();
         lookup.resize(rule_count(), MAX);
@@ -388,7 +387,7 @@ class Grammar {
         return {source_len, avg_len};
     }
 
-    const inline std::pair<size_t, double> max_and_avg_rule_depth() const {
+    inline auto max_and_avg_rule_depth() const -> const std::pair<size_t, double> {
         std::vector<size_t> lookup;
         constexpr auto      MAX = std::numeric_limits<size_t>().max();
         lookup.resize(rule_count(), MAX);
@@ -398,9 +397,9 @@ class Grammar {
         return {depth, avg_depth};
     }
 
-    const inline size_t source_length() const { return source_and_avg_rule_length().first; }
+    inline auto source_length() const -> const size_t { return source_and_avg_rule_length().first; }
 
-    const inline size_t depth() const { return max_and_avg_rule_depth().first; }
+    inline auto depth() const -> const size_t { return max_and_avg_rule_depth().first; }
 
     /**
      * @brief Checks whether a symbol is a terminal.
@@ -413,7 +412,7 @@ class Grammar {
      * @return true If the symbol is in the extended ASCII range
      * @return false If the symbol is not in the extended ASCII range
      */
-    static const inline bool is_terminal(size_t symbol) { return symbol < RULE_OFFSET; }
+    static inline auto is_terminal(size_t symbol) -> const bool { return symbol < RULE_OFFSET; }
 
     /**
      * @brief Checks whether a symbol is a non-terminal.
@@ -427,9 +426,9 @@ class Grammar {
      * @return true If the symbol outside the extended ASCII range
      * @return false If the symbol is in the extended ASCII range
      */
-    static const inline bool is_non_terminal(size_t symbol) { return !is_terminal(symbol); }
+    static inline auto is_non_terminal(size_t symbol) -> const bool { return !is_terminal(symbol); }
 
-    static inline std::vector<Rule> consume(Grammar &&gr) {
+    static inline auto consume(Grammar &&gr) -> std::vector<Rule> {
         std::vector<Rule> new_vec(0);
         std::swap(gr.m_rules, new_vec);
         return new_vec;
@@ -439,7 +438,7 @@ class Grammar {
 
     auto end() const { return m_rules.cend(); }
 
-    const Rule &get_rule_const(size_t id) { return m_rules[id]; }
+    auto get_rule_const(size_t id) -> const Rule & { return m_rules[id]; }
 };
 
 } // namespace gracli

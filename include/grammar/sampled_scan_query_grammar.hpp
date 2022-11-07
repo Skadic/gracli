@@ -132,7 +132,7 @@ class SampledScanQueryGrammar {
         }
     }
 
-    std::pair<uint32_t, word_packing::PackedIntVector<Pack>> calculate_full_lengths() {
+    auto calculate_full_lengths() -> std::pair<uint32_t, word_packing::PackedIntVector<Pack>> {
 
         word_packing::PackedIntVector<Pack> full_lengths(m_rules.size(), sizeof(uint64_t) * 8);
 
@@ -182,8 +182,8 @@ class SampledScanQueryGrammar {
         calculate_samples();
     }
 
-    static SampledScanQueryGrammar<sampling> from_file(const std::string &path) {
-        return { Grammar::from_file(path) };
+    static inline auto from_file(const std::string &path) -> SampledScanQueryGrammar<sampling> {
+        return {Grammar::from_file(path)};
     }
 
     /**
@@ -192,7 +192,7 @@ class SampledScanQueryGrammar {
      * @param id The rule id whose symbols vector to access
      * @return Symbols& A reference to the rule's symbols vector
      */
-    const Symbols &operator[](const size_t id) const { return m_rules[id]; }
+    inline auto operator[](const size_t id) const -> const Symbols & { return m_rules[id]; }
 
     /**
      * @brief Prints the grammar to an output stream.
@@ -245,7 +245,7 @@ class SampledScanQueryGrammar {
      *
      * @return std::string The source string
      */
-    std::string reproduce() const {
+    reproduce() const->std::string {
 
         // This vector contains a mapping of a rule id (or rather, a nonterminal) to the string representation of the
         // rule, were it fully expanded
@@ -287,7 +287,7 @@ class SampledScanQueryGrammar {
      *
      * @return const size_t The id of the start rule
      */
-    const inline size_t start_rule_id() const { return m_start_rule_id; }
+    inline auto start_rule_id() const -> const size_t { return m_start_rule_id; }
 
     /**
      * @brief Returns the expanded length of the symbol at the given index in the right side of the given rule.
@@ -297,12 +297,12 @@ class SampledScanQueryGrammar {
      *
      * @return The fully expanded length of the symbol.
      */
-    const inline size_t symbol_length(size_t rule_id, size_t index) const {
+    inline symbol_length(size_t rule_id, size_t index) const->const size_t {
         const auto symbol = m_rules[rule_id][index];
         return Grammar::is_terminal(symbol) ? 1 : rule_length(symbol - RULE_OFFSET);
     }
 
-    std::string expansion(size_t rule_id) const {
+    auto expansion(size_t rule_id) const -> std::string {
         auto &symbols = m_rules[rule_id];
 
         std::ostringstream oss;
@@ -325,7 +325,7 @@ class SampledScanQueryGrammar {
      *
      * @return The fully expanded length of the rule.
      */
-    const inline size_t rule_length(size_t rule_id) const {
+    inline auto rule_length(size_t rule_id) const -> const size_t {
         return rule_id != m_start_rule_id ? (size_t) m_full_lengths[rule_id] : m_start_rule_full_length;
     }
 
@@ -336,7 +336,7 @@ class SampledScanQueryGrammar {
      *
      * @return const size_t The size of the grammar
      */
-    const inline size_t grammar_size() const {
+    inline auto grammar_size() const -> const size_t {
         auto count = 0;
         for (size_t rule_id = 0; rule_id < m_rules.size(); rule_id++) {
             count += m_rules[rule_id].size();
@@ -349,7 +349,7 @@ class SampledScanQueryGrammar {
      *
      * @return const size_t The rule count
      */
-    const inline size_t rule_count() const { return m_rules.size(); }
+    inline auto rule_count() const -> const size_t { return m_rules.size(); }
 
     /**
      * @brief Checks whether this grammar contains the rule with the given id
@@ -358,7 +358,7 @@ class SampledScanQueryGrammar {
      * @return true If the grammar contains the rule with the given id
      * @return false If the grammar does not contain the rule with the given id
      */
-    const inline bool contains_rule(size_t id) const { return m_rules.size() < id && !m_rules[id].empty(); }
+    inline auto contains_rule(size_t id) const -> const bool { return m_rules.size() < id && !m_rules[id].empty(); }
 
     /**
      * @brief Checks whether the grammar is empty
@@ -366,7 +366,7 @@ class SampledScanQueryGrammar {
      * @return true If the grammar contains no rules
      * @return false If the grammar contains rules
      */
-    const inline bool empty() const { return rule_count() == 0; }
+    inline auto empty() const -> const bool { return rule_count() == 0; }
 
     inline auto begin() const { return m_rules.cbegin(); }
 
@@ -377,14 +377,14 @@ class SampledScanQueryGrammar {
      *
      * @return
      */
-    const inline std::vector<QuerySample> &samples() const { return m_samples; }
+    inline auto samples() const -> const std::vector<QuerySample> & { return m_samples; }
 
     /**
      * @brief Returns the length of the source string.
      *
      * @return The length of the source string.
      */
-    const inline size_t source_length() const { return m_start_rule_full_length; }
+    const inline auto source_length() const -> const size_t { return m_start_rule_full_length; }
 
     /**
      * @brief Returns the character at index i in the source string.
@@ -395,7 +395,7 @@ class SampledScanQueryGrammar {
      *
      * @return The char at the given index in the source string.
      */
-    char at(size_t i) const {
+    auto at(size_t i) const -> char {
         const auto         sample_idx = i / sampling;
         const QuerySample &sample     = m_samples[sample_idx];
 
@@ -660,7 +660,7 @@ class SampledScanQueryGrammar {
      *
      * @return The substring in the given interval.
      */
-    std::string substr(const size_t substr_start, size_t substr_len) const {
+    auto substr(const size_t substr_start, size_t substr_len) const -> std::string {
         std::ostringstream oss;
         substr_internal(substr_start, substr_len, oss);
         return oss.str();
@@ -672,11 +672,11 @@ class SampledScanQueryGrammar {
      * @brief Writes the expansion of the rule with the given id to the char pointer in reverse.
      * This respects the range substr_start and substr_end and only writes characters inside that range
      */
-    char *write_expansion_reverse(char        *buf,
-                                  const size_t id,
-                                  size_t      &source_index,
-                                  const size_t substr_start,
-                                  const size_t substr_end) const {
+    auto write_expansion_reverse(char        *buf,
+                                 const size_t id,
+                                 size_t      &source_index,
+                                 const size_t substr_start,
+                                 const size_t substr_end) const -> char * {
         auto &symbols = m_rules[id];
 
         for (int i = symbols.size() - 1; i >= 0; i--) {
@@ -708,7 +708,7 @@ class SampledScanQueryGrammar {
      * @return std::string The intersection of the substring and the part of the block before (and not including) the
      * sampled position
      */
-    char *scan_left(char *buf, const size_t substr_start, const size_t substr_end) const {
+    auto scan_left(char *buf, const size_t substr_start, const size_t substr_end) const -> char * {
         char *start_buf = buf;
 
         const auto        sample_idx = substr_start / sampling;
@@ -765,11 +765,11 @@ class SampledScanQueryGrammar {
      * @brief Writes the expansion of the rule with the given id to the string stream and modifies source_index
      * accordingly. This also respect susbtr_start and substr_end and only writes characters that are in that range
      */
-    char *write_expansion(char        *buf,
-                          const size_t id,
-                          size_t      &source_index,
-                          const size_t substr_start,
-                          const size_t substr_end) const {
+    auto write_expansion(char        *buf,
+                         const size_t id,
+                         size_t      &source_index,
+                         const size_t substr_start,
+                         const size_t substr_end) const -> char * {
         auto &symbols = m_rules[id];
         for (auto symbol : symbols) {
             if (Grammar::is_terminal(symbol)) {
@@ -802,7 +802,7 @@ class SampledScanQueryGrammar {
      * @param substr_end The end of the substring (exclusive)
      * @return std::string The intersection of the substring and the part of the block after the sampled position
      */
-    char *scan_right(char *buf, size_t substr_start, size_t substr_end) const {
+    auto scan_right(char *buf, size_t substr_start, size_t substr_end) const -> char * {
         const auto        sample_idx = substr_start / sampling;
         const QuerySample sample     = m_samples[sample_idx];
 
@@ -846,7 +846,7 @@ class SampledScanQueryGrammar {
     }
 
   public:
-    char *substr(char *buf, const size_t substr_start, const size_t substr_len) const {
+    auto substr(char *buf, const size_t substr_start, const size_t substr_len) const -> char * {
         // Exclusive end index
         const auto substr_end = std::min(substr_start + substr_len, (size_t) m_start_rule_full_length);
 

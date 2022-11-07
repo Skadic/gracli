@@ -1,20 +1,20 @@
 #pragma once
 
-#include <utility>
 #include <string>
+#include <utility>
 
-#include <util/bit_input_stream.hpp>
 #include <lzend/lzend.hpp>
+#include <util/bit_input_stream.hpp>
 
 namespace gracli::lz {
 
-std::pair<LzEnd::Parsing, size_t> decode(const std::string &file_path) {
+auto decode(const std::string &file_path) -> std::pair<LzEnd::Parsing, size_t> {
     std::ifstream in(file_path, std::ios::binary);
     BitIStream    br(std::move(in));
 
     const auto char_width = br.read_int<uint8_t>() + 1;
-    const auto int_width= br.read_int<uint8_t>() + 1;
-    const auto int_bytes = int_width / CHAR_BIT;
+    const auto int_width  = br.read_int<uint8_t>() + 1;
+    const auto int_bytes  = int_width / CHAR_BIT;
 
     // We want to skip the next 6 bytes since they are still part of the header but don't contain any information
     br.read_int<uint64_t>(6 * CHAR_BIT);
@@ -24,7 +24,7 @@ std::pair<LzEnd::Parsing, size_t> decode(const std::string &file_path) {
     LzEnd::Parsing parsing;
 
     while (!br.eof()) {
-        const auto c = br.read_int<LzEnd::Char>(char_width);
+        const auto        c           = br.read_int<LzEnd::Char>(char_width);
         LzEnd::TextOffset prev_phrase = 0;
 
         // TODO For the time being, this is assuming that int_width is a multiple of 8, in order to
@@ -47,9 +47,9 @@ std::pair<LzEnd::Parsing, size_t> decode(const std::string &file_path) {
     return std::make_pair(std::move(parsing), source_len);
 }
 
-LzEnd LzEnd::from_file(const std::string &file) {
+auto LzEnd::from_file(const std::string &file) -> LzEnd {
     auto [parsing, source_len] = decode(file);
     return from_parsing(std::move(parsing), source_len);
 }
 
-};
+}; // namespace gracli::lz

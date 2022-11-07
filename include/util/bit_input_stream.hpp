@@ -1,6 +1,7 @@
 #pragma once
 
 #include <climits>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 
@@ -64,15 +65,15 @@ class BitIStream {
     struct BitSink {
         BitIStream *m_ptr;
 
-        inline uint8_t read_bit() { return m_ptr->read_bit(); }
+        inline auto read_bit() -> uint8_t { return m_ptr->read_bit(); }
 
         template<class T>
-        inline T read_int(size_t amount = sizeof(T) * CHAR_BIT) {
+        inline auto read_int(size_t amount = sizeof(T) * CHAR_BIT) -> T {
             return m_ptr->template read_int<T>(amount);
         }
     };
 
-    inline BitSink bit_sink() { return BitSink{this}; }
+    inline auto bit_sink() -> BitSink { return BitSink{this}; }
 
   public:
     /// \brief Constructs a bitwise input stream.
@@ -101,7 +102,7 @@ class BitIStream {
     BitIStream(BitIStream &&other) = default;
 
     /// TODO document
-    inline bool eof() const {
+    inline auto eof() const -> bool {
         // If there are no more bytes, and all bits from the current buffer are read,
         // we are done
         return m_is_final && (m_cursor <= (MSB - m_final_bits));
@@ -109,7 +110,7 @@ class BitIStream {
 
     /// \brief Reads the next single bit from the input.
     /// \return 1 if the next bit is set, 0 otherwise.
-    inline uint8_t read_bit() {
+    inline auto read_bit() -> uint8_t {
         if (!eof()) {
             uint8_t bit = (m_current >> m_cursor) & 1;
             if (m_cursor) {
@@ -133,7 +134,7 @@ class BitIStream {
     /// \return The integer value of the next \c amount bits in MSB first
     ///         order.
     template<class T>
-    inline T read_int(size_t bits = sizeof(T) * CHAR_BIT) {
+    inline auto read_int(size_t bits = sizeof(T) * CHAR_BIT) -> T {
 
         const size_t bits_left_in_current = m_cursor + 1ULL;
         if (bits < bits_left_in_current) {
@@ -200,7 +201,7 @@ class BitIStream {
         }
     }
 
-    inline size_t bits_read() const { return m_bits_read; }
+    inline auto bits_read() const -> size_t { return m_bits_read; }
 };
 
 } // namespace gracli

@@ -5,8 +5,8 @@
 #include <compute_lzend.hpp>
 #include <cstdint>
 #include <fstream>
-#include <numeric>
 #include <iostream>
+#include <numeric>
 
 namespace gracli::lz {
 
@@ -21,7 +21,6 @@ class LzEnd {
     using RankSelect = BitVec::rs_index_type;
 
   private:
-
     /**
      * @brief Stores the last character of each phrase contiguously.
      * In the original paper, this is L.
@@ -59,20 +58,20 @@ class LzEnd {
     size_t m_source_length;
 
   public:
-    size_t num_phrases() const { return m_last.size(); }
+    auto num_phrases() const -> size_t { return m_last.size(); }
 
   private:
-    size_t rank1_last_pos(const size_t i) const { return m_last_pos.rank(i, *m_last_pos_rs); }
+    auto rank1_last_pos(const size_t i) const -> size_t { return m_last_pos.rank(i, *m_last_pos_rs); }
 
-    size_t rank1_source_begin(const size_t i) const { return m_source_begin.rank(i, *m_source_begin_rs); }
+    auto rank1_source_begin(const size_t i) const -> size_t { return m_source_begin.rank(i, *m_source_begin_rs); }
 
-    size_t select1_last_pos(const size_t i) const {
+    auto select1_last_pos(const size_t i) const -> size_t {
         BitVec::size_type pos;
         m_last_pos.select(i, pos, *m_last_pos_rs);
         return pos;
     }
 
-    size_t select1_source_begin(const size_t i) const {
+    auto select1_source_begin(const size_t i) const -> size_t {
         BitVec::size_type pos;
         m_source_begin.select(i, pos, *m_source_begin_rs);
         return pos;
@@ -118,8 +117,8 @@ class LzEnd {
                 continue;
             }
 
-            size_t src_end   = select1_last_pos(f.m_link + 1);
-            size_t src_start = src_end - f.m_len + 2;
+            size_t src_end         = select1_last_pos(f.m_link + 1);
+            size_t src_start       = src_end - f.m_len + 2;
             phrase_source_start[i] = src_start + 1;
         }
 
@@ -211,8 +210,8 @@ class LzEnd {
         m_source_begin_rs{std::move(other.m_source_begin_rs)},
         m_source_map{std::move(other.m_source_map)},
         m_source_length{other.m_source_length} {
-        //m_last_pos.build_rs_index(m_last_pos_rs.get());
-        //m_source_begin.build_rs_index(m_source_begin_rs.get());
+        // m_last_pos.build_rs_index(m_last_pos_rs.get());
+        // m_source_begin.build_rs_index(m_source_begin_rs.get());
     }
 
     static LzEnd from_source_file(const std::string &file) {
@@ -243,13 +242,13 @@ class LzEnd {
         return instance;
     }
 
-    char at(size_t i) const {
+    auto at(size_t i) const -> char {
         size_t phrase_id = i > 0 ? rank1_last_pos(i - 1) : 0;
 
         while (!m_last_pos[i]) {
             // Find the source_phrase of this phrase
             size_t source_phrase = m_source_map.next(phrase_id);
-            size_t phrase_start = phrase_id > 0 ? select1_last_pos(phrase_id) + 1 : 0;
+            size_t phrase_start  = phrase_id > 0 ? select1_last_pos(phrase_id) + 1 : 0;
 
             // We move to the source since this is where we need to read from
             size_t new_i = select1_source_begin(source_phrase + 1) - source_phrase - 1;
@@ -263,7 +262,7 @@ class LzEnd {
         return (char) m_last[phrase_id];
     }
 
-    char *substr(char *buf, const size_t substr_start, const size_t substr_len) const {
+    auto substr(char *buf, const size_t substr_start, const size_t substr_len) const -> char * {
         if (substr_len == 0) {
             return buf;
         }
@@ -344,7 +343,7 @@ class LzEnd {
         return buf;
     }
 
-    size_t source_length() const { return m_source_length; }
+    auto source_length() const -> size_t { return m_source_length; }
 };
 
 } // namespace gracli::lz

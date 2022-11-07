@@ -152,12 +152,12 @@ class Permutation {
         m_shortcut_pos_rs{new RankSelect()},
         m_shortcut_buf{} {}
 
-    size_t next(const size_t i) const {
+    auto next(const size_t i) const -> size_t {
         auto acc = permutation_accessor();
         return acc[i];
     }
 
-    size_t previous(const size_t i) const {
+    auto previous(const size_t i) const -> size_t {
         auto perm      = permutation_accessor();
         auto shortcuts = shortcut_accessor();
         // Find next shortcut
@@ -175,7 +175,7 @@ class Permutation {
         return current_pos;
     }
 
-    size_t size() const { return m_size; }
+    auto size() const -> size_t { return m_size; }
 };
 
 } // namespace gracli

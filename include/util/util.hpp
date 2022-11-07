@@ -1,17 +1,17 @@
 #pragma once
 
-#include "util/permutation.hpp"
+#include "permutation.hpp"
 #include <bm64.h>
 #include <concepts>
-#include <limits>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <limits>
 #include <sstream>
 
 namespace gracli {
 
 template<std::integral T>
-T invalid() {
+auto invalid() -> T {
     return std::numeric_limits<T>().max();
 }
 

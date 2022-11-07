@@ -41,7 +41,7 @@ struct QGrammarResult {
 };
 
 template<typename Grm>
-inline QGrammarResult<Grm> build_random_access(const std::string &file) {
+auto build_random_access(const std::string &file) -> QGrammarResult<Grm> {
 
     std::chrono::steady_clock::time_point begin       = std::chrono::steady_clock::now();
     size_t                                space_begin = malloc_count_current();
@@ -71,7 +71,7 @@ inline QGrammarResult<Grm> build_random_access(const std::string &file) {
 }
 
 template<>
-inline QGrammarResult<std::string> build_random_access<std::string>(const std::string &file) {
+auto build_random_access<std::string>(const std::string &file) -> QGrammarResult<std::string> {
     Grammar gr = Grammar::from_file(file);
 
     size_t      space_begin        = malloc_count_current();
@@ -84,7 +84,7 @@ inline QGrammarResult<std::string> build_random_access<std::string>(const std::s
 }
 
 template<>
-inline QGrammarResult<lz::LzEnd> build_random_access<lz::LzEnd>(const std::string &file) {
+auto build_random_access<lz::LzEnd>(const std::string &file) -> QGrammarResult<lz::LzEnd> {
     using namespace lz;
     using TimePoint = std::chrono::steady_clock::time_point;
 

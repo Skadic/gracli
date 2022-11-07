@@ -1,18 +1,18 @@
 #pragma once
 
-#include <word_packing.hpp>
-#include <util/bit_input_stream.hpp>
-#include <consts.hpp>
 #include <algorithm>
 #include <cmath>
+#include <consts.hpp>
 #include <cstdint>
 #include <iostream>
+#include <util/bit_input_stream.hpp>
 #include <vector>
+#include <word_packing.hpp>
 
 namespace gracli {
 struct GrammarTupleCoder {
 
-    static std::vector<word_packing::PackedIntVector<uint64_t>> decode(std::string file_path) {
+    static auto decode(std::string file_path) -> std::vector<word_packing::PackedIntVector<uint64_t>> {
         std::ifstream in(file_path, std::ios::binary);
         BitIStream    br(std::move(in));
 
