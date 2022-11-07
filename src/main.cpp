@@ -175,7 +175,7 @@ void query_interactive(const std::string &path) requires gracli::Substring<DS> &
     }
 }
 
-int main(int argc, char **argv) {
+auto main(int argc, char **argv) -> int {
 
     tlx::CmdlineParser cp;
 
