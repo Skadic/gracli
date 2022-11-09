@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <concepts.hpp>
-#include <file_access.hpp>
+#include <file_access/file_access.hpp>
 #include <grammar/grammar.hpp>
 #include <grammar/sampled_scan_query_grammar.hpp>
 #include <lzend/lzend.hpp>
