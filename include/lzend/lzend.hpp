@@ -1,12 +1,14 @@
 #pragma once
 
-#include "bm64.h"
-#include "util/permutation.hpp"
-#include <compute_lzend.hpp>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <numeric>
+
+#include <util/permutation.hpp>
+
+#include <bm64.h>
+#include <compute_lzend.hpp>
 
 namespace gracli::lz {
 

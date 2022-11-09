@@ -1,12 +1,14 @@
 #pragma once
 
-#include "permutation.hpp"
-#include <bm64.h>
 #include <concepts>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <sstream>
+
+#include <util/permutation.hpp>
+
+#include <bm64.h>
 
 namespace gracli {
 

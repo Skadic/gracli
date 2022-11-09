@@ -245,7 +245,7 @@ class SampledScanQueryGrammar {
      *
      * @return std::string The source string
      */
-    reproduce() const->std::string {
+    auto reproduce() const -> std::string {
 
         // This vector contains a mapping of a rule id (or rather, a nonterminal) to the string representation of the
         // rule, were it fully expanded
@@ -297,7 +297,7 @@ class SampledScanQueryGrammar {
      *
      * @return The fully expanded length of the symbol.
      */
-    inline symbol_length(size_t rule_id, size_t index) const->const size_t {
+    inline auto symbol_length(size_t rule_id, size_t index) const -> const size_t {
         const auto symbol = m_rules[rule_id][index];
         return Grammar::is_terminal(symbol) ? 1 : rule_length(symbol - RULE_OFFSET);
     }

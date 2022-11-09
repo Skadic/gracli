@@ -15,6 +15,7 @@
 #include <consts.hpp>
 #include <grammar/grammar_tuple_coder.hpp>
 #include <util/util.hpp>
+
 #include <word_packing.hpp>
 
 namespace gracli {

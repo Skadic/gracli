@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
-#include <consts.hpp>
 #include <cstdint>
 #include <iostream>
-#include <util/bit_input_stream.hpp>
 #include <vector>
+
+#include <consts.hpp>
+#include <util/bit_input_stream.hpp>
+
 #include <word_packing.hpp>
 
 namespace gracli {
