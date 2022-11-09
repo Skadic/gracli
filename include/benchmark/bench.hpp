@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -134,7 +135,9 @@ void benchmark_random_access(QGrammarResult<Grm> &&data,
                              const std::string    &file,
                              size_t                num_queries,
                              const std::string    &name) {
-    srand(time(nullptr));
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> rand_int(0, data.source_length - 1);
 
     Grm &qgr = data.gr;
 
@@ -142,7 +145,7 @@ void benchmark_random_access(QGrammarResult<Grm> &&data,
 
     auto begin = std::chrono::steady_clock::now();
     for (size_t i = 0; i < num_queries; i++) {
-        c += qgr.at(rand() % data.source_length);
+        c += qgr.at(rand_int(gen));
     }
     auto end              = std::chrono::steady_clock::now();
     auto query_time_total = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -182,7 +185,9 @@ void benchmark_substring(QGrammarResult<Grm> &&data,
                          size_t                num_queries,
                          size_t                length,
                          const std::string    &name) {
-    srand(time(nullptr));
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> rand_int(0, data.source_length - 1);
 
     Grm &qgr = data.gr;
 
@@ -191,7 +196,7 @@ void benchmark_substring(QGrammarResult<Grm> &&data,
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     size_t                                c     = 0;
     for (size_t i = 0; i < num_queries; i++) {
-        qgr.substr(buf, rand() % data.source_length, length);
+        qgr.substr(buf, rand_int(gen), length);
         c += buf[0];
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -224,7 +229,9 @@ void benchmark_substring(QGrammarResult<std::string> &&data,
                          size_t                        num_queries,
                          size_t                        length,
                          const std::string            &name) {
-    srand(time(nullptr));
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<size_t> rand_int(0, data.source_length - 1);
 
     std::string &qgr = data.gr;
 
@@ -233,7 +240,7 @@ void benchmark_substring(QGrammarResult<std::string> &&data,
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     size_t                                c     = 0;
     for (size_t i = 0; i < num_queries; i++) {
-        size_t start = (rand() % data.source_length);
+        size_t start = rand_int(gen);
         size_t end   = std::min(start + length, data.source_length);
         std::copy(qgr.begin() + start, qgr.begin() + end, buf);
         c += buf[0];

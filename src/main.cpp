@@ -386,7 +386,7 @@ auto main(int argc, char **argv) -> int {
                 break;
             }
             case GrammarType::FileAccess: {
-                benchmark_substring<FileAccess>(file, num_queries, substring_length, "lzend");
+                benchmark_substring<FileAccess>(file, num_queries, substring_length, "file_access");
                 break;
             }
         }
