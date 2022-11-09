@@ -1,17 +1,18 @@
 #include <algorithm>
 #include <cstdint>
-
-#include "lzend/lzend.hpp"
-#include <progressbar.hpp>
-
-#include <benchmark/bench.hpp>
-#include <cmdline_parser.hpp>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
+
+#include <benchmark/bench.hpp>
+#include <file_access/file_access.hpp>
 #include <grammar/naive_query_grammar.hpp>
 #include <grammar/sampled_scan_query_grammar.hpp>
-#include <sstream>
+#include <lzend/lzend.hpp>
+
+#include <cmdline_parser.hpp>
+#include <progressbar.hpp>
 
 enum class GrammarType : uint8_t {
     ReproducedString,
@@ -20,11 +21,13 @@ enum class GrammarType : uint8_t {
     SampledScan6400,
     SampledScan25600,
     LzEnd,
+    FileAccess,
 };
 
 template<gracli::FromFile DS>
-void verify_ds(const std::string &source_path, const std::string &compressed_path) requires gracli::Substring<DS> &&
-    gracli::CharRandomAccess<DS> && gracli::SourceLength<DS> {
+void verify_ds(const std::string &source_path, const std::string &compressed_path)
+    requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> && gracli::SourceLength<DS>
+{
     if (!std::filesystem::exists(source_path)) {
         std::cerr << "file " << source_path << " does not exist" << std::endl;
         return;
@@ -81,8 +84,9 @@ void verify_ds(const std::string &source_path, const std::string &compressed_pat
             source.copy(src_buf, 10, i);
             ds.substr(ds_buf, i, 10);
             if (strcmp(src_buf, ds_buf)) {
-                std::cerr << "substring at index " << i << " failed.\nexpected: \"" << src_buf
-                          << "\"\nactual: " << ds_buf << std::endl;
+#pragma omp critical
+                std::cerr << "substring at index " << i << " failed.\nexpected: \"" << src_buf << "\"\nactual: \""
+                          << ds_buf << "\"" << std::endl;
 #pragma omp cancel for
             }
             if (i % ((n - 10) / 100) == 0) {
@@ -95,8 +99,9 @@ void verify_ds(const std::string &source_path, const std::string &compressed_pat
 }
 
 template<gracli::FromFile DS>
-void query_interactive(const std::string &path) requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> &&
-    gracli::SourceLength<DS> {
+void query_interactive(const std::string &path)
+    requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> && gracli::SourceLength<DS>
+{
     if (!std::filesystem::exists(path)) {
         std::cerr << "file " << path << " does not exist" << std::endl;
         return;
@@ -228,7 +233,7 @@ auto main(int argc, char **argv) -> int {
                     "DATA_STRUCTURE",
                     type,
                     "The Access Data Structure to use. (0 = String, 1 = Naive, 2 = Sampled Scan 512, 3 = Sampled Scan "
-                    "6400, 4 = Sampled Scan 25600, 5 = LzEnd)");
+                    "6400, 4 = Sampled Scan 25600, 5 = LzEnd, 6 = File on Disk)");
 
     if (!cp.process(argc, argv)) {
         return -1;
@@ -243,7 +248,7 @@ auto main(int argc, char **argv) -> int {
         interactive = true;
     }
 
-    if (type > 5) {
+    if (type > 6) {
         type = 0;
     }
 
@@ -277,6 +282,10 @@ auto main(int argc, char **argv) -> int {
                 query_interactive<lz::LzEnd>(file);
                 break;
             }
+            case GrammarType::FileAccess: {
+                query_interactive<FileAccess>(file);
+                break;
+            }
         }
     } else if (verify) {
         switch (grammar_type) {
@@ -302,6 +311,10 @@ auto main(int argc, char **argv) -> int {
             }
             case GrammarType::LzEnd: {
                 verify_ds<lz::LzEnd>(src_file, file);
+                break;
+            }
+            case GrammarType::FileAccess: {
+                verify_ds<FileAccess>(src_file, file);
                 break;
             }
         }
@@ -330,6 +343,10 @@ auto main(int argc, char **argv) -> int {
             }
             case GrammarType::LzEnd: {
                 benchmark_random_access<lz::LzEnd>(file, num_queries, "lzend");
+                break;
+            }
+            case GrammarType::FileAccess: {
+                benchmark_random_access<FileAccess>(file, num_queries, "file_access");
                 break;
             }
         }
@@ -366,6 +383,10 @@ auto main(int argc, char **argv) -> int {
             }
             case GrammarType::LzEnd: {
                 benchmark_substring<lz::LzEnd>(file, num_queries, substring_length, "lzend");
+                break;
+            }
+            case GrammarType::FileAccess: {
+                benchmark_substring<FileAccess>(file, num_queries, substring_length, "lzend");
                 break;
             }
         }
