@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -74,13 +75,17 @@ auto build_random_access(const std::string &file) -> QGrammarResult<Grm> {
 
 template<>
 auto build_random_access<std::string>(const std::string &file) -> QGrammarResult<std::string> {
-    Grammar gr = Grammar::from_file(file);
-
-    size_t      space_begin        = malloc_count_current();
-    std::string source             = gr.reproduce();
-    size_t      space_end          = malloc_count_current();
-    auto        source_length      = source.length();
-    int64_t     decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
+    size_t      space_begin = malloc_count_current();
+    std::string source;
+    {
+        std::ifstream     ifs(file);
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+        source = ss.str();
+    }
+    size_t  space_end          = malloc_count_current();
+    auto    source_length      = source.length();
+    int64_t decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
 
     return {std::move(source), source_length, 0, 0, decode_space_delta, 0};
 }
@@ -135,8 +140,8 @@ void benchmark_random_access(QGrammarResult<Grm> &&data,
                              const std::string    &file,
                              size_t                num_queries,
                              const std::string    &name) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::random_device                    rd;
+    std::mt19937                          gen(rd());
     std::uniform_int_distribution<size_t> rand_int(0, data.source_length - 1);
 
     Grm &qgr = data.gr;
@@ -185,8 +190,8 @@ void benchmark_substring(QGrammarResult<Grm> &&data,
                          size_t                num_queries,
                          size_t                length,
                          const std::string    &name) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::random_device                    rd;
+    std::mt19937                          gen(rd());
     std::uniform_int_distribution<size_t> rand_int(0, data.source_length - 1);
 
     Grm &qgr = data.gr;
@@ -229,8 +234,8 @@ void benchmark_substring(QGrammarResult<std::string> &&data,
                          size_t                        num_queries,
                          size_t                        length,
                          const std::string            &name) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::random_device                    rd;
+    std::mt19937                          gen(rd());
     std::uniform_int_distribution<size_t> rand_int(0, data.source_length - 1);
 
     std::string &qgr = data.gr;
