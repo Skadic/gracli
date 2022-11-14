@@ -11,7 +11,7 @@
 #include <grammar/sampled_scan_query_grammar.hpp>
 #include <lzend/lzend.hpp>
 
-#include <cmdline_parser.hpp>
+#include <tlx/cmdline_parser.hpp>
 #include <progressbar.hpp>
 
 enum class GrammarType : uint8_t {
