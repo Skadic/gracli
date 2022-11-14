@@ -1,12 +1,14 @@
 #pragma once
 
-#include "util.hpp"
 #include "gtest/gtest.h"
 #include <concepts.hpp>
 #include <filesystem>
-#include <grammar.hpp>
-#include <gtest/gtest.h>
 #include <string>
+
+#include <grammar/grammar.hpp>
+#include <util/util.hpp>
+
+#include <gtest/gtest.h>
 
 struct QueryGrammarTestInput {
   public:
@@ -33,7 +35,7 @@ struct QueryGrammarTestInput {
 };
 
 template<gracli::RandomAccess Grm>
-requires gracli::FromFile<Grm>
+    requires gracli::FromFile<Grm>
 class QueryGrammarTestFixture : public testing::TestWithParam<QueryGrammarTestInput> {
   public:
     void test_random_access() {
@@ -86,7 +88,8 @@ class QueryGrammarTestFixture : public testing::TestWithParam<QueryGrammarTestIn
             for (int j = 0; j < len; j++) {
                 ASSERT_TRUE(strcmp(expected_buf, accessed_buf) == 0)
                     << "Error in query at index " << i << ", length " << len
-                    << "\nexpected: " << std::string(expected_buf, expected_buf + len) << "\nactual: " << std::string(accessed_buf, accessed_buf + len);
+                    << "\nexpected: " << std::string(expected_buf, expected_buf + len)
+                    << "\nactual: " << std::string(accessed_buf, accessed_buf + len);
             }
         }
     }

@@ -4,9 +4,9 @@
 #include "lzend/lzend.hpp"
 #include <filesystem>
 #include <gtest/gtest.h>
-#include <util.hpp>
+#include <util/util.hpp>
 
-const std::string FOX_IN_SOCKS = "test_data/fox.txt";
+const std::string FOX_IN_SOCKS = "test/test_data/fox.txt";
 
 TEST(lzend_test, random_access_test) {
     auto source_path     = std::filesystem::absolute(FOX_IN_SOCKS);
@@ -35,7 +35,7 @@ TEST(lzend_test, substring_test) {
     char buf1[n + 1];
     char buf2[n + 1];
 
-    for (size_t l = 1; l < n; l++) {
+    for (size_t l = 1; l < 10; l++) {
         buf1[l] = 0;
         buf2[l] = 0;
         for (size_t i = 0; i < n - l + 1; i++) {
