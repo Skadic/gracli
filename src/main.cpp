@@ -11,8 +11,8 @@
 #include <grammar/sampled_scan_query_grammar.hpp>
 #include <lzend/lzend.hpp>
 
-#include <tlx/cmdline_parser.hpp>
 #include <progressbar.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 enum class GrammarType : uint8_t {
     ReproducedString,
@@ -25,9 +25,8 @@ enum class GrammarType : uint8_t {
 };
 
 template<gracli::FromFile DS>
-void verify_ds(const std::string &source_path, const std::string &compressed_path)
-    requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> && gracli::SourceLength<DS>
-{
+void verify_ds(const std::string &source_path, const std::string &compressed_path) requires gracli::Substring<DS> &&
+    gracli::CharRandomAccess<DS> && gracli::SourceLength<DS> {
     if (!std::filesystem::exists(source_path)) {
         std::cerr << "file " << source_path << " does not exist" << std::endl;
         return;
@@ -99,9 +98,8 @@ void verify_ds(const std::string &source_path, const std::string &compressed_pat
 }
 
 template<gracli::FromFile DS>
-void query_interactive(const std::string &path)
-    requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> && gracli::SourceLength<DS>
-{
+void query_interactive(const std::string &path) requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> &&
+    gracli::SourceLength<DS> {
     if (!std::filesystem::exists(path)) {
         std::cerr << "file " << path << " does not exist" << std::endl;
         return;

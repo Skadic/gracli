@@ -19,3 +19,6 @@
 [submodule "external/malloc_count"]
 	path = external/malloc_count
 	url = https://github.com/Skadic/malloc_count
+[submodule "external/MinimalistBlockTrees"]
+	path = external/MinimalistBlockTrees
+	url = https://github.com/Skadic/MinimalistBlockTrees
