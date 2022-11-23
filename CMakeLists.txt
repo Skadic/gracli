@@ -57,13 +57,17 @@ target_include_directories(libgracli INTERFACE external/MinimalistBlockTrees/inc
 target_link_libraries(libgracli INTERFACE blocktree)
 set_target_properties(blocktree PROPERTIES COMPILE_FLAGS "-w")
 
+# oocmd
+add_subdirectory(external/oocmd)
+target_include_directories(libgracli INTERFACE external/oocmd/include)
+
 # progressbar
 target_include_directories(libgracli INTERFACE external/progressbar/include)
 
 # tlx
-add_subdirectory(external/tlx)
-target_include_directories(libgracli INTERFACE external/tlx/tlx)
-target_link_libraries(libgracli INTERFACE tlx)
+#add_subdirectory(external/tlx)
+#target_include_directories(libgracli INTERFACE external/tlx/tlx)
+#target_link_libraries(libgracli INTERFACE tlx)
 
 # word-packing
 add_subdirectory(external/word-packing)
