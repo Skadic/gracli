@@ -14,6 +14,7 @@
 #include <grammar/grammar.hpp>
 #include <grammar/sampled_scan_query_grammar.hpp>
 #include <lzend/lzend.hpp>
+#include <blocktree/blocktree.hpp>
 
 #include <compute_lzend.hpp>
 #include <malloc_count.h>
@@ -133,6 +134,24 @@ auto build_random_access<FileAccess>(const std::string &file) -> QGrammarResult<
 
     const size_t source_length = file_access.source_length();
     return {std::move(file_access), source_length, decode_time, 0, decode_space_delta, 0};
+}
+
+template<>
+auto build_random_access<BlockTreeRandomAccess>(const std::string &file) -> QGrammarResult<BlockTreeRandomAccess> {
+    using namespace lz;
+    using TimePoint = std::chrono::steady_clock::time_point;
+
+    // Decoding
+    size_t    space_begin        = malloc_count_current();
+    TimePoint begin              = std::chrono::steady_clock::now();
+    auto      bt        = BlockTreeRandomAccess::from_file(file);
+    TimePoint end                = std::chrono::steady_clock::now();
+    size_t    space_end          = malloc_count_current();
+    size_t    decode_time        = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    int64_t   decode_space_delta = (int64_t) space_end - (int64_t) space_begin;
+
+    const size_t source_length = bt.source_length();
+    return {std::move(bt), source_length, decode_time, 0, decode_space_delta, 0};
 }
 
 template<CharRandomAccess Grm>

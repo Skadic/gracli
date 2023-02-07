@@ -6,12 +6,13 @@
 #include <sstream>
 
 #include <benchmark/bench.hpp>
+#include <blocktree/blocktree.hpp>
 #include <file_access/file_access.hpp>
 #include <grammar/naive_query_grammar.hpp>
 #include <grammar/sampled_scan_query_grammar.hpp>
 #include <lzend/lzend.hpp>
 
-#include <tlx/cmdline_parser.hpp>
+#include <oocmd.hpp>
 #include <progressbar.hpp>
 
 enum class GrammarType : uint8_t {
@@ -22,12 +23,12 @@ enum class GrammarType : uint8_t {
     SampledScan25600,
     LzEnd,
     FileAccess,
+    BlockTree,
 };
 
 template<gracli::FromFile DS>
-void verify_ds(const std::string &source_path, const std::string &compressed_path)
-    requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> && gracli::SourceLength<DS>
-{
+void verify_ds(const std::string &source_path, const std::string &compressed_path) requires gracli::Substring<DS> &&
+    gracli::CharRandomAccess<DS> && gracli::SourceLength<DS> {
     if (!std::filesystem::exists(source_path)) {
         std::cerr << "file " << source_path << " does not exist" << std::endl;
         return;
@@ -99,9 +100,8 @@ void verify_ds(const std::string &source_path, const std::string &compressed_pat
 }
 
 template<gracli::FromFile DS>
-void query_interactive(const std::string &path)
-    requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> && gracli::SourceLength<DS>
-{
+void query_interactive(const std::string &path) requires gracli::Substring<DS> && gracli::CharRandomAccess<DS> &&
+    gracli::SourceLength<DS> {
     if (!std::filesystem::exists(path)) {
         std::cerr << "file " << path << " does not exist" << std::endl;
         return;
@@ -180,215 +180,227 @@ void query_interactive(const std::string &path)
     }
 }
 
-auto main(int argc, char **argv) -> int {
+struct Gracli : public oocmd::ConfigObject {
 
-    tlx::CmdlineParser cp;
-
-    cp.set_author("Etienne Palanga");
-
-    std::string file;
-    cp.add_string('f', "file", file, "The compressed input file");
-
-    std::string src_file;
-    cp.add_string('S', "source_file", src_file, "The uncompressed reference file for use with -v");
-
-    bool interactive = false;
-    cp.add_flag('i',
-                "interactive",
-                interactive,
-                "Starts interactive mode in which interactive queries can be made using syntax <from>:<to>");
-
-    bool random_access = false;
-    cp.add_flag('r',
-                "random_access",
-                random_access,
-                "Benchmarks runtime of a Grammar's random access queries. Value is the number of queries.");
-
-    bool substring = false;
-    cp.add_flag('s',
-                "substring",
-                substring,
-                "Benchmarks runtime of a Grammar's substring queries. Value is the number of queries.");
-
-    bool verify = false;
-    cp.add_flag('v',
-                "verify",
-                verify,
-                "Verifies that the given compressed file reprocudes the same characters as a given (uncompressed) "
-                "reference file.");
-
+    std::string  file;
+    std::string  src_file;
+    bool         interactive      = false;
+    bool         random_access    = false;
+    bool         substring        = false;
+    bool         verify           = false;
     unsigned int substring_length = 10;
-    cp.add_unsigned('l',
-                    "substring_length",
-                    "LENGTH",
-                    substring_length,
-                    "Length of the substrings while benchmarking substring queries.");
+    unsigned int num_queries      = 100;
+    unsigned int type             = 0;
 
-    unsigned int num_queries = 100;
-    cp.add_unsigned('n', "num_queries", "N", num_queries, "Amount of benchmark queries");
+    Gracli() : ConfigObject("gracli", "Offers various data structures for random access on compressed sequences") {
+        param('f', "file", file, "The compressed input file");
+        param('S', "source_file", src_file, "The uncompressed reference file for use with -v");
+        param('i',
+              "interactive",
+              interactive,
+              "Starts interactive mode in which interactive queries can be made using syntax <from>:<to>");
+        param('r',
+              "random_access",
+              random_access,
+              "Benchmarks runtime of a Grammar's random access queries. Value is the number of queries.");
 
-    unsigned int type = 0;
-    cp.add_unsigned('d',
-                    "data_structure",
-                    "DATA_STRUCTURE",
-                    type,
-                    "The Access Data Structure to use. (0 = String, 1 = Naive, 2 = Sampled Scan 512, 3 = Sampled Scan "
-                    "6400, 4 = Sampled Scan 25600, 5 = LzEnd, 6 = File on Disk)");
-
-    if (!cp.process(argc, argv)) {
-        return -1;
+        param('s',
+              "substring",
+              substring,
+              "Benchmarks runtime of a Grammar's substring queries. Value is the number of queries.");
+        param('v',
+              "verify",
+              verify,
+              "Verifies that the given compressed file reprocudes the same characters as a given (uncompressed) "
+              "reference file.");
+        param('l',
+              "substring_length",
+              substring_length,
+              "Length of the substrings while benchmarking substring queries.");
+        param('n', "num_queries", num_queries, "Amount of benchmark queries");
+        param('d',
+              "data_structure",
+              type,
+              "The Access Data Structure to use. (0 = String, 1 = Naive, 2 = Sampled Scan 512, 3 = Sampled Scan "
+              "6400, 4 = Sampled Scan 25600, 5 = LzEnd, 6 = File on Disk, 7 = Block Trees)");
     }
 
-    if (verify && (src_file.empty() || file.empty())) {
-        std::cerr << "Both -f and -S are needed to use -v" << std::endl;
-        return -1;
-    }
+    int run(oocmd::Application const &app) {
 
-    if (!(interactive || random_access || substring || verify)) {
-        interactive = true;
-    }
+        if (verify && (src_file.empty() || file.empty())) {
+            std::cerr << "Both -f and -S are needed to use -v" << std::endl;
+            return -1;
+        }
 
-    if (type > 6) {
-        type = 0;
-    }
+        if (!(interactive || random_access || substring || verify)) {
+            interactive = true;
+        }
 
-    auto grammar_type = static_cast<GrammarType>(type);
+        if (type > 7) {
+            type = 0;
+        }
 
-    using namespace gracli;
+        auto grammar_type = static_cast<GrammarType>(type);
 
-    if (interactive) {
-        switch (grammar_type) {
-            case GrammarType::ReproducedString: {
-                std::cerr << "Interactive mode not supported with string" << std::endl;
-                break;
+        using namespace gracli;
+
+        if (interactive) {
+            switch (grammar_type) {
+                case GrammarType::ReproducedString: {
+                    std::cerr << "Interactive mode not supported with string" << std::endl;
+                    break;
+                }
+                case GrammarType::Naive: {
+                    query_interactive<NaiveQueryGrammar>(file);
+                    break;
+                }
+                case GrammarType::SampledScan512: {
+                    query_interactive<SampledScanQueryGrammar<512>>(file);
+                    break;
+                }
+                case GrammarType::SampledScan6400: {
+                    query_interactive<SampledScanQueryGrammar<6400>>(file);
+                    break;
+                }
+                case GrammarType::SampledScan25600: {
+                    query_interactive<SampledScanQueryGrammar<25600>>(file);
+                    break;
+                }
+                case GrammarType::LzEnd: {
+                    query_interactive<lz::LzEnd>(file);
+                    break;
+                }
+                case GrammarType::FileAccess: {
+                    query_interactive<FileAccess>(file);
+                    break;
+                }
+                case GrammarType::BlockTree: {
+                    query_interactive<BlockTreeRandomAccess>(file);
+                    break;
+                }
             }
-            case GrammarType::Naive: {
-                query_interactive<NaiveQueryGrammar>(file);
-                break;
-            }
-            case GrammarType::SampledScan512: {
-                query_interactive<SampledScanQueryGrammar<512>>(file);
-                break;
-            }
-            case GrammarType::SampledScan6400: {
-                query_interactive<SampledScanQueryGrammar<6400>>(file);
-                break;
-            }
-            case GrammarType::SampledScan25600: {
-                query_interactive<SampledScanQueryGrammar<25600>>(file);
-                break;
-            }
-            case GrammarType::LzEnd: {
-                query_interactive<lz::LzEnd>(file);
-                break;
-            }
-            case GrammarType::FileAccess: {
-                query_interactive<FileAccess>(file);
-                break;
+        } else if (verify) {
+            switch (grammar_type) {
+                case GrammarType::ReproducedString: {
+                    std::cerr << "Verification not supported on strings" << std::endl;
+                    break;
+                }
+                case GrammarType::Naive: {
+                    verify_ds<NaiveQueryGrammar>(src_file, file);
+                    break;
+                }
+                case GrammarType::SampledScan512: {
+                    verify_ds<SampledScanQueryGrammar<512>>(src_file, file);
+                    break;
+                }
+                case GrammarType::SampledScan6400: {
+                    verify_ds<SampledScanQueryGrammar<6400>>(src_file, file);
+                    break;
+                }
+                case GrammarType::SampledScan25600: {
+                    verify_ds<SampledScanQueryGrammar<25600>>(src_file, file);
+                    break;
+                }
+                case GrammarType::LzEnd: {
+                    verify_ds<lz::LzEnd>(src_file, file);
+                    break;
+                }
+                case GrammarType::FileAccess: {
+                    verify_ds<FileAccess>(src_file, file);
+                    break;
+                }
+                case GrammarType::BlockTree: {
+                    verify_ds<BlockTreeRandomAccess>(src_file, file);
+                    break;
+                }
             }
         }
-    } else if (verify) {
-        switch (grammar_type) {
-            case GrammarType::ReproducedString: {
-                std::cerr << "Verification not supported on strings" << std::endl;
-                break;
+        if (random_access) {
+            switch (grammar_type) {
+                case GrammarType::ReproducedString: {
+                    benchmark_random_access<std::string>(file, num_queries, "string");
+                    break;
+                }
+                case GrammarType::Naive: {
+                    benchmark_random_access<NaiveQueryGrammar>(file, num_queries, "naive");
+                    break;
+                }
+                case GrammarType::SampledScan512: {
+                    benchmark_random_access<SampledScanQueryGrammar<512>>(file, num_queries, "sampled_scan_512");
+                    break;
+                }
+                case GrammarType::SampledScan6400: {
+                    benchmark_random_access<SampledScanQueryGrammar<6400>>(file, num_queries, "sampled_scan_6400");
+                    break;
+                }
+                case GrammarType::SampledScan25600: {
+                    benchmark_random_access<SampledScanQueryGrammar<25600>>(file, num_queries, "sampled_scan_25600");
+                    break;
+                }
+                case GrammarType::LzEnd: {
+                    benchmark_random_access<lz::LzEnd>(file, num_queries, "lzend");
+                    break;
+                }
+                case GrammarType::FileAccess: {
+                    benchmark_random_access<FileAccess>(file, num_queries, "file_access");
+                    break;
+                }
+                case GrammarType::BlockTree: {
+                    benchmark_random_access<BlockTreeRandomAccess>(file, num_queries, "blocktree");
+                    break;
+                }
             }
-            case GrammarType::Naive: {
-                verify_ds<NaiveQueryGrammar>(src_file, file);
-                break;
-            }
-            case GrammarType::SampledScan512: {
-                verify_ds<SampledScanQueryGrammar<512>>(src_file, file);
-                break;
-            }
-            case GrammarType::SampledScan6400: {
-                verify_ds<SampledScanQueryGrammar<6400>>(src_file, file);
-                break;
-            }
-            case GrammarType::SampledScan25600: {
-                verify_ds<SampledScanQueryGrammar<25600>>(src_file, file);
-                break;
-            }
-            case GrammarType::LzEnd: {
-                verify_ds<lz::LzEnd>(src_file, file);
-                break;
-            }
-            case GrammarType::FileAccess: {
-                verify_ds<FileAccess>(src_file, file);
-                break;
+        } else if (substring) {
+            switch (grammar_type) {
+                case GrammarType::ReproducedString: {
+                    benchmark_substring(file, num_queries, substring_length, "string");
+                    break;
+                }
+                case GrammarType::Naive: {
+                    benchmark_substring<NaiveQueryGrammar>(file, num_queries, substring_length, "naive");
+                    break;
+                }
+                case GrammarType::SampledScan512: {
+                    benchmark_substring<SampledScanQueryGrammar<512>>(file,
+                                                                      num_queries,
+                                                                      substring_length,
+                                                                      "sampled_scan_512");
+                    break;
+                }
+                case GrammarType::SampledScan6400: {
+                    benchmark_substring<SampledScanQueryGrammar<6400>>(file,
+                                                                       num_queries,
+                                                                       substring_length,
+                                                                       "sampled_scan_6400");
+                    break;
+                }
+                case GrammarType::SampledScan25600: {
+                    benchmark_substring<SampledScanQueryGrammar<25600>>(file,
+                                                                        num_queries,
+                                                                        substring_length,
+                                                                        "sampled_scan_25600");
+                    break;
+                }
+                case GrammarType::LzEnd: {
+                    benchmark_substring<lz::LzEnd>(file, num_queries, substring_length, "lzend");
+                    break;
+                }
+                case GrammarType::FileAccess: {
+                    benchmark_substring<FileAccess>(file, num_queries, substring_length, "file_access");
+                    break;
+                }
+                case GrammarType::BlockTree: {
+                    benchmark_substring<BlockTreeRandomAccess>(file, num_queries, substring_length, "blocktree");
+                    break;
+                }
             }
         }
+
+        return 0;
     }
-    if (random_access) {
-        switch (grammar_type) {
-            case GrammarType::ReproducedString: {
-                benchmark_random_access<std::string>(file, num_queries, "string");
-                break;
-            }
-            case GrammarType::Naive: {
-                benchmark_random_access<NaiveQueryGrammar>(file, num_queries, "naive");
-                break;
-            }
-            case GrammarType::SampledScan512: {
-                benchmark_random_access<SampledScanQueryGrammar<512>>(file, num_queries, "sampled_scan_512");
-                break;
-            }
-            case GrammarType::SampledScan6400: {
-                benchmark_random_access<SampledScanQueryGrammar<6400>>(file, num_queries, "sampled_scan_6400");
-                break;
-            }
-            case GrammarType::SampledScan25600: {
-                benchmark_random_access<SampledScanQueryGrammar<25600>>(file, num_queries, "sampled_scan_25600");
-                break;
-            }
-            case GrammarType::LzEnd: {
-                benchmark_random_access<lz::LzEnd>(file, num_queries, "lzend");
-                break;
-            }
-            case GrammarType::FileAccess: {
-                benchmark_random_access<FileAccess>(file, num_queries, "file_access");
-                break;
-            }
-        }
-    } else if (substring) {
-        switch (grammar_type) {
-            case GrammarType::ReproducedString: {
-                benchmark_substring(file, num_queries, substring_length, "string");
-                break;
-            }
-            case GrammarType::Naive: {
-                benchmark_substring<NaiveQueryGrammar>(file, num_queries, substring_length, "naive");
-                break;
-            }
-            case GrammarType::SampledScan512: {
-                benchmark_substring<SampledScanQueryGrammar<512>>(file,
-                                                                  num_queries,
-                                                                  substring_length,
-                                                                  "sampled_scan_512");
-                break;
-            }
-            case GrammarType::SampledScan6400: {
-                benchmark_substring<SampledScanQueryGrammar<6400>>(file,
-                                                                   num_queries,
-                                                                   substring_length,
-                                                                   "sampled_scan_6400");
-                break;
-            }
-            case GrammarType::SampledScan25600: {
-                benchmark_substring<SampledScanQueryGrammar<25600>>(file,
-                                                                    num_queries,
-                                                                    substring_length,
-                                                                    "sampled_scan_25600");
-                break;
-            }
-            case GrammarType::LzEnd: {
-                benchmark_substring<lz::LzEnd>(file, num_queries, substring_length, "lzend");
-                break;
-            }
-            case GrammarType::FileAccess: {
-                benchmark_substring<FileAccess>(file, num_queries, substring_length, "file_access");
-                break;
-            }
-        }
-    }
+};
+
+auto main(int argc, char **argv) -> int {
+    Gracli gracli;
+    oocmd::Application::run(gracli, argc, argv);
 }
