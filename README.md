@@ -121,10 +121,8 @@ This will output a result line for use with [sqlplot-tools](https://github.com/b
 However, data can also be manually extracted. An example result line for the above call looks like this:
 
 ```txt
-RESULT type=random_access ds=sampled_scan_512 input_file=my_file.rp input_size=1234 num_queries=10000 construction_time=0 decode_space_delta=4321 construction_space_delta=0 decode_time=5 query_time_total=21
+RESULT type=random_access ds=sampled_scan_512 input_file=my_file.rp input_size=1234 num_queries=10000 space=4312 construction_time=59 query_time_total=26 
 ```
-
-The format and content of this line are subject to change as there are some unused legacy-fields in here.
 
 #### Substring
 
@@ -137,13 +135,11 @@ This benchmarks substring queries on the C++ `std::string` type (using `std::cop
 ./gracli -d 0 -s -f "my_file.txt" -n 10000 -l 100
 ```
 
-This results in an example result line like this:
+This might result in a result line like this one:
 
 ```txt
-RESULT type=substring ds=string input_file=my_file.txt input_size=1234 num_queries=10000 substring_length=100 construction_time=0 decode_time=0 decode_space_delta=114466 construction_space_delta=0 query_time_total=65
+RESULT type=substring ds=string input_file=my_file.txt input_size=1234 num_queries=10000 substring_length=100 space=46123 construction_time=68 query_time_total=63 
 ```
-
-As before, the content of these result lines is subject to change.
 
 ## Sourcing Compressed Files
 
