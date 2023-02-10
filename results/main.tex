@@ -1,0 +1,98 @@
+% arara: xelatex: { synctex: yes }
+\documentclass{scrartcl}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{biblatex}
+\usepackage{tikz}
+\usetikzlibrary{calc,shapes}
+\usepackage{todonotes}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+\newcommand{\lzend}{LZ-End}
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
+
+\addbibresource{Random Access.bib}
+
+
+\title{Evaluation of Random Access Data Structures for Repetetive Data}
+\author{Etienne Palanga}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+	We evaluate several compressed string representations and compare their space consumption in RAM, as well as the time required to extract single characters, or substrings of different sizes.
+\end{abstract}
+
+\section{Introduction}
+
+As data volume increasing in almost any field and as such, handling data in compressed form is gaining importance.
+The question arises whether text, especially repetetive ones, can be represented in a way which reduces their memory footprint, while still allowing efficient retrieval of the original data.
+
+Approaches to this problem are already known in the literature \cite{belazzougui_block_2021,bille_random_2013,kreft_self-index_2011,nunes_grammar_2022}.
+In this short evaluation, we will compare implementations of several compressed data structures.
+In this evaluation one is based on context-free grammars, one by \citeauthor{kreft_self-index_2011} is based on the \lzend{} parsing \cite{kreft_self-index_2011}, and another by \citeauthor{belazzougui_block_2021} is based on block trees \cite{belazzougui_block_2021}.
+
+We will evaluate the space requirements as well as query speed for each of the data structures on several repetetive datasets from the Pizza \& Chili Corpus \footnote{\url{http://pizzachili.dcc.uchile.cl/}}.
+
+\section{Data Structures}
+
+For a text $T[1..n] \in \Sigma^n$ with length $n \in \mathbb{N}$ over an alphabet $\Sigma$, we aim to store $T$ in as little space as possible while retaining the ability to access single characters or substrings from $T$.
+Various data structures exist to facilitate this.
+
+\subsection{\lzend{}}
+
+One data structure is \citeauthor{kreft_self-index_2011}'s \lzend{}-based data structure.
+\lzend{} is a variation of the LZ77 parsing \cite{ziv_universal_1977} in which $T$ is split into phrases $T_f = f_1 f_2 \dots f_k$.
+Each phrase $f_i$ is either a single character $c \in \Sigma$ or a pointer to the left in $T$ from which a previously occurring substring is copied. The additional restriction for \lzend{} is that the copied substring must be a suffix of $f_1 \dots f_j$ where $j < i$.
+The single character following this copied substring is also part of $f_i$.
+An example parsing is given in \cref{fig:02:lzend}, but formal definitions and the specific description of the data structure should be taken from the original paper \cite{kreft_self-index_2011}.
+For this evaluation, the parsing is created by \citeauthor{kempa_lz-end_2017}'s implementation \cite{kempa_lz-end_2017}\footnote{\url{https://github.com/dominikkempa/lz-end-toolkit}}.
+The random access data structure is generated from this parsing.
+
+\subsection{Block Tree}
+
+The next data structure is the block tree introduced by \citeauthor{belazzougui_block_2021} \cite{belazzougui_block_2021}.
+As the name implies, it is a tree-like data structure.
+For some parameters $s, \tau \geq 2$, we divide $T$ into $s$ blocks of equal size, then recursively divide the blocks into $\tau$ blocks of equal size.
+This procedure is recursively applied to each block, yielding a $\tau$-ary tree, except for the root which has degree $s$.
+This tree compressed by identifying blocks, whose content appears to the left of this block on the same level.
+Such blocks are replaced by blocks pointing at the previous occurrence.
+An example is given in \todo{make block tree figure}.
+Again, for formal definitions and explanations of the data structure, we refer to the original paper by \citeauthor{belazzougui_block_2021} \cite{belazzougui_block_2021}.
+In this evaluation, an implementation by Reyes\footnote{\url{https://github.com/elarielcl/MinimalistBlockTrees}} is used, which we augmented with support for faster substring operations.\footnote{\url{https://github.com/Skadic/MinimalistBlockTrees}}
+
+\begin{figure}
+	\centering
+	\begin{equation}
+		T_f = b|\tikzmark{anS}a|n|\tikzmark{an}\textcolor{red}{an}a|c|\tikzmark{ana}\textcolor{red}{ana}d|a
+	\end{equation}
+
+	\begin{tikzpicture}[overlay, remember picture]
+		\begin{scope}[transform canvas={xshift=0.75mm}]
+			\draw[->,shorten >=5pt,shorten <=5pt,out=-90,in=-90,distance=0.5cm] (an.north) to (anS.north);
+		\end{scope}
+		\begin{scope}[transform canvas={xshift=1.25mm}]
+			\draw[->,shorten >=5pt,shorten <=5pt,out=-90,in=-90,distance=0.5cm] (ana.north) to (an.north);
+		\end{scope}
+	\end{tikzpicture}
+
+	\caption{An example of an \lzend{} parsing for $T = bananacanada$. The parts copied from other parts of $T$ are marked in red and their sources are denoted by arrows.}
+	\label{fig:02:lzend}
+\end{figure}
+
+\subsection{Sampled Scan Grammar}
+
+\todo{describe sampled scan grammar}
+
+\section{Evaluation}
+
+\todo{add evaluation results and describe them}
+
+\section{Conclusion}
+
+\printbibliography
+
+\end{document}
