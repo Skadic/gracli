@@ -11,7 +11,11 @@
 #include <compute_lzend.hpp>
 
 namespace gracli::lz {
-
+/**
+ * @brief Random access implementation on an Lz-End parsing based on the paper "Self-Index Based on LZ77" by Kreft and Navarro.
+ *
+ * The paper can be found at https://arxiv.org/abs/1101.4065
+ */
 class LzEnd {
   public:
     using Char       = uint8_t;
