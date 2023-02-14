@@ -1,25 +1,8 @@
-% arara: biber
+% rara: biber
 % arara: xelatex: { synctex: yes }
 \documentclass{scrartcl}
 
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{biblatex}
-\usepackage{tikz}
-\usetikzlibrary{calc,shapes,matrix,fit,calc}
-\usepackage{todonotes}
-\usepackage{hyperref}
-\usepackage{cleveref}
-
-\usepackage{caption}
-\usepackage{subcaption}
-
-
-\newcommand{\lzend}{LZ-End}
-\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
-
-\addbibresource{Random Access.bib}
-
+\input{preamble.tex}
 
 \title{Evaluation of Random Access Data Structures for Repetetive Data}
 \author{Etienne Palanga}
@@ -28,9 +11,9 @@
 \maketitle
 
 \begin{abstract}
-	We evaluate several compressed string representations and compare their space consumption in RAM, 
-  as well as the time required to extract single characters, or substrings of different sizes.
-  We also introduce a simple random access data structure based on straight-line grammars.
+	We evaluate several compressed string representations and compare their space consumption in RAM,
+	as well as the time required to extract single characters, or substrings of different sizes.
+	We also introduce a simple random access data structure based on straight-line grammars.
 \end{abstract}
 
 \section{Introduction}
@@ -129,7 +112,7 @@ The sampled symbols are marked in purple.
 
 To calculate the sample for $b_4 = T[10..12]$, we choose the rule that covers it entirely and has a minimally small expansion.
 In this case, this is the second $A$. Now we choose the first symbol in that $A$ whose expansion starts in the block $T[10..12]$.
-This is the second $B$ in the right side of $A$ at index $3$. Its expansion starts at index $11$ in $T$ which corresponds to index $2$ inside of $T[10..12]$.
+This is the second $B$ in the right side of $A$  at index $3$. Its expansion starts at index $11$ in $T$ which corresponds to index $2$ inside of $T[10..12]$.
 This results in the sample: $s_4 = (A, 3, 2)$;
 
 In total we end up with these samples: $(A, 1, 1), (S, 2, 3), (S, 3, 1), (A, 3, 2)$.
@@ -152,10 +135,10 @@ In total we end up with these samples: $(A, 1, 1), (S, 2, 3), (S, 3, 1), (A, 3, 
 		\begin{tikzpicture}
 			\node[matrix of nodes, column sep=0mm, row sep=1mm, nodes in empty cells] (m) {
 				$1$ & $2$ & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ & $11$ & $12$\\\hline
-        $a$ & $b$ & $a$ & $b$ & $a$ & $c$ & $a$ & $a$ & $b$ & $a$ & $b$ & $a$\\
+				$a$ & $b$ & $a$ & $b$ & $a$ & $c$ & $a$ & $a$ & $b$ & $a$ & $b$ & $a$\\
 				$S$ & & & & & & & & & & & \\
-        $A$ & & & & & \textcolor{purple}{$c$} & \textcolor{purple}{$a$} & $A$ & & & & \\
-        \textcolor{purple}{$a$} & $B$ & & $B$ & & & & $a$ & $B$ & & \textcolor{purple}{$B$} & \\
+				$A$ & & & & & \textcolor{purple}{$c$} & \textcolor{purple}{$a$} & $A$ & & & & \\
+				\textcolor{purple}{$a$} & $B$ & & $B$ & & & & $a$ & $B$ & & \textcolor{purple}{$B$} & \\
 			};
 
 			% Separators
@@ -187,10 +170,10 @@ In total we end up with these samples: $(A, 1, 1), (S, 2, 3), (S, 3, 1), (A, 3, 
 				thick, inner sep=0, rounded corners=1mm,
 				draw=red]{};
 
-      \draw[->,purple] (m-4-1) -- (m-5-1);
-      \draw[->,purple] (m-3-6) -- (m-4-6);
-      \draw[->,purple] (m-3-7) -- (m-4-7);
-      \draw[->,purple] (m-4-11) -- (m-5-11);
+			\draw[->,purple] (m-4-1) -- (m-5-1);
+			\draw[->,purple] (m-3-6) -- (m-4-6);
+			\draw[->,purple] (m-3-7) -- (m-4-7);
+			\draw[->,purple] (m-4-11) -- (m-5-11);
 		\end{tikzpicture}
 		\caption{Visual representation of the grammar.}
 		\label{subfig:02:grammarvisual}
@@ -208,7 +191,7 @@ From there, we scan until we have found the character or extracted all character
 \paragraph{Random Access}
 
 To answer a random access query for $1 \leq i \leq n$, we first determine the block $i$ is contained in, that being $k := \lceil i/r \rceil$.
-Let $s_k =: (X, p_{\alpha}, p_{b_k}) \in (\mathcal{N} \cup \Sigma) \times \mathbb{N} \times \mathbb{N}$, where $\alpha$ is the right side of $X$. 
+Let $s_k =: (X, p_{\alpha}, p_{b_k}) \in (\mathcal{N} \cup \Sigma) \times \mathbb{N} \times \mathbb{N}$, where $\alpha$ is the right side of $X$.
 Then we know that $\alpha$ contains the character we are looking for since it spans the entire block $b_k$.
 Depending on whether $i$ is lesser or greater than $k \cdot r + p_{b_k}$, we now just need to scan either backwards or forwards respectively,
 descending into other nonterminals if necessary, in order to find the desired character.
@@ -228,8 +211,229 @@ This of course might require a forward \emph{and} backwards scan each block.
 
 \todo{add evaluation results and describe them}
 
+In this evaluation we will be comparing the aforementioned data structures and compare their performance and space usage with \texttt{std::string} from the C++ standard library.
+The substring queries for \texttt{std::string} do not use the \texttt{substr} method.
+Rather, we use the \texttt{std::copy} function to copy the characters into a preallocated \texttt{char} buffer.
+Similarly, the queries on the other data structures also copy characters into a preallocated buffer.
+
+The experiments were conducted on a machine running Ubuntu 18.04 with two AMD EPYC 7452 Processors with 32 physical cores (64 logical cores) each running at 2.35GHz base clock rate.
+
+\subsection{Datasets}
+
+All datasets used in this evaluation stem from the Pizza \& Chili repetetive Corpus \footnote{\url{http://pizzachili.dcc.uchile.cl/}}.
+Among them are  artificial and real texts.
+
+\paragraph{Artificial}
+
+These are texts that are calculated from a mathematical definition and do not stem from a real-life source.
+
+\begin{itemize}[leftmargin=2cm]
+	\item[\textbf{fib41}] If $S_0 = 0$ and $S_1 = 01$ then $S_n = S_{n-1}S_{n-2}$,
+		then the concatenation of the previous two words, is called the $n$-th \emph{Fibonacci word}. \cite{barabash_periodic_2016}
+		This is $S_{41}$.
+\end{itemize}
+
+\paragraph{Real}
+
+These are texts that come from real-live sources and are \emph{not} artificially made repetetive.
+
+\begin{itemize}[leftmargin=2cm]
+	\item[\textbf{cere}] $37$ sequences of the yeast \emph{Saccharomyces Cerevisiae}'s genome.
+	\item[\textbf{e\_coli}] $23$ sequences of the bacterium \emph{Escherichia Coli}'s genome.
+	\item[\textbf{influenza}] $78,041$ sequences of the bacterium \emph{Haemophilus Influenzae}'s genome.
+	\item[\textbf{para}] $32$ sequences of the yeast \emph{Saccharomyces Paradoxus}'s genome.
+	\item[\textbf{einstein}] All versions of the Albert Einstein Wikipedia article in English and German respectively.
+	\item[\textbf{coreutils}] The source code of all 5.x versions of the GNU Coreutils package totalling in 9 versions.
+	\item[\textbf{kernel}] The source code of all 1.0.x and 1.1.x versions of the Linux kernel totalling in 36 versions.
+	\item[\textbf{worldleaders}] The pdf files of CIA World Leaders from January 2003 to December 2009, converted to text.
+\end{itemize}
+
+Statistics concerning each dataset can be found in \cref{tab:03:datastats}.
+
+\begin{table}
+	\caption{Statistics for all used datasets.}
+	\label{tab:03:datastats}
+	\centering
+	\begin{tabular}[c]{r|c|c}
+		\textbf{Dataset}      & \textbf{Size (MiB)} & \textbf{Alphabet Size} \\\hline\hline
+		\textbf{cere}         & $440$               & 5                      \\
+		\textbf{e\_coli}      & $108$               & 15                     \\
+		\textbf{influenza}    & $148$               & 15                     \\
+		\textbf{para}         & $410$               & 5                      \\
+		\textbf{einstein\_de} & $89$                & 117                    \\
+		\textbf{einstein\_en} & $446$               & 139                    \\
+		\textbf{coreutils}    & $196$               & 236                    \\
+		\textbf{kernel}       & $247$               & 160                    \\
+		\textbf{worldleaders} & $45$                & 89                     \\
+	\end{tabular}
+\end{table}
+
+% IMPORT-DATA data benches.txt
+
+\subsection{Query Speed}
+
+Random Access (1 character) and substring queries were evaluated.
+Each query was run $10^6$ times, and substring queries of lengths $10$, $100$, $1,000$ and $10,000$ were performed.
+
+\subsubsection{Random Access}
+
+
+Out of the compressed formats, the block tree is the clear winner,
+most of the time ahead by several orders of magnitude in comparison to the others.
+The results presented for the block tree in \cref{fig:03:raspeed} represent the average for all blocktrees of every used parameterization.
+
+More specific results, can be found in \todo{block tree figure (waiting for random access data for bt zzz...)}
+
+\begin{figure}
+	\begin{tikzpicture}
+		\begin{axis}[
+				title={Random Access},
+				width=15cm,
+				height=8cm,
+				ylabel={Time for $10^{6}$ queries [$\lg_{2}$ ms]},
+				legend pos=north east,
+				plotticks,
+        plotlabels,
+				ybar,
+				bar width=2mm,
+				cycle list name=algsbar
+			]
+			%% MULTIPLOT(ds) SELECT input_file AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE type='random_access' AND NOT input_file LIKE "%200" GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
+			\addplot coordinates { (cere,10.774) (cere,10.733) (coreutils,10.7814) (coreutils,10.5255) (e\_coli,10.668) (e\_coli,9.89482) (einstein\_de,8.88264) (einstein\_de,8.60733) (einstein\_en,8.93958) (einstein\_en,8.99435) (fib41,7.47573) (fib41,7.47573) (influenza,9.90539) (influenza,10.5333) (kernel,10.8865) (kernel,10.6519) (para,10.8634) (para,10.6537) (worldleaders,8.96867) (worldleaders,9.3837) };
+			\addlegendentry{ds=sampled\_scan\_512};
+			\addplot coordinates { (cere,5.32193) (coreutils,5.2854) (e\_coli,5.20945) (einstein\_de,5.20945) (einstein\_en,5.32193) (fib41,5.24793) (influenza,5.2854) (kernel,5.32193) (para,5.32193) (worldleaders,5.08746) };
+			\addlegendentry{ds=string};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Random access query speed for $10^6$ queries.}
+	\label{fig:03:raspeed}
+\end{figure}
+
+\subsubsection{Substring}
+
+As depicted in \cref{fig:03:ssspeed}, with substring queries the results are not as conclusive, at least not when looking at the average performance.
+In most cases the block tree still beats the grammar.
+On very short substrings the block tree is much faster than the grammar in most cases.
+The exception here is \textbf{fib41} at which the grammar pulls ahead marginally.
+
+On substrings of length $10,000$ this advantage shrinks significantly.
+While the block tree is on average around a factor of $2$ faster than the grammar,
+it is still much slower than \texttt{std::string}.
+This is usually by a factor of around $2^7$ while the grammar hovers around being around $2^8$
+times slower than \texttt{std::string}.
+Again, for block trees this plot contains the average across all parameterizations except for the ones saving no extra data to enable faster substring queries.
+
+\begin{figure}
+	\begin{tikzpicture}
+		\begin{groupplot}[height=25cm,group style={group size= 1 by 2}]
+			\nextgroupplot[
+				title={Substrings of length $10$},
+				width=15cm,
+				height=8cm,
+				ylabel={Time for $10^{6}$ queries [$\lg_{2}$ ms]},
+				legend pos=north east,
+				plotticks,
+				xtick=\empty,
+				ybar,
+				bar width=2mm,
+				cycle list name=algsbar
+			]
+			%% MULTIPLOT(ds) SELECT input_file AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE type='substring' AND NOT input_file LIKE "%200" AND substring_length=10 AND ((prefix_suffix is null) or (not prefix_suffix=0)) GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
+			\addplot coordinates { (cere,8.43755) (coreutils,8.56445) (e\_coli,8.25194) (einstein\_de,8.20461) (einstein\_en,8.36463) (fib41,8.59862) (influenza,8.03316) (kernel,8.48142) (para,8.38883) (worldleaders,8.08476) };
+			\addlegendentry{ds=blocktree};
+			\addplot coordinates { (cere,11.0841) (cere,11.1046) (coreutils,11.1799) (coreutils,11.1222) (e\_coli,11.0133) (e\_coli,10.4988) (einstein\_de,9.5411) (einstein\_de,9.41574) (einstein\_en,9.66) (einstein\_en,9.70908) (fib41,8.33539) (fib41,8.37938) (influenza,10.3151) (influenza,11.0007) (kernel,11.2432) (kernel,11.1755) (para,11.1674) (para,11.032) (worldleaders,9.59991) (worldleaders,10.021) };
+			\addlegendentry{ds=sampled\_scan\_512};
+			\addplot coordinates { (cere,5.75489) (coreutils,5.72792) (e\_coli,5.64386) (einstein\_de,5.64386) (einstein\_en,5.75489) (fib41,5.70044) (influenza,5.70044) (kernel,5.72792) (para,5.72792) (worldleaders,5.52356) };
+			\addlegendentry{ds=string};
+
+			\nextgroupplot[
+				title={Substrings of length $10,000$},
+				width=15cm,
+				height=8cm,
+				ylabel={Time for $10^{6}$ queries [$\lg_{2}$ ms]},
+				legend pos=north east,
+				plotticks,
+				plotlabels,
+				ybar,
+				bar width=2mm,
+				cycle list name=algsbar
+			]
+			%% MULTIPLOT(ds) SELECT input_file AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE type='substring' AND NOT input_file LIKE "%200" AND substring_length=10000 AND ((prefix_suffix is null) or (not prefix_suffix=0)) GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
+			\addplot coordinates { (cere,17.2475) (coreutils,17.3947) (e\_coli,17.137) (einstein\_de,17.399) (einstein\_en,17.4904) (fib41,17.8324) (influenza,16.8642) (kernel,17.4573) (para,17.1411) (worldleaders,17.2921) };
+			\addplot coordinates { (cere,18.2669) (cere,18.419) (coreutils,18.307) (coreutils,18.7239) (e\_coli,18.3196) (e\_coli,18.3401) (einstein\_de,17.8303) (einstein\_de,17.793) (einstein\_en,17.8559) (einstein\_en,17.9275) (fib41,16.836) (fib41,16.8349) (influenza,17.8795) (influenza,18.5641) (kernel,18.2382) (kernel,18.628) (para,18.4188) (para,18.3881) (worldleaders,17.5317) (worldleaders,17.7543) };
+			\addplot coordinates { (cere,9.93369) (coreutils,9.83763) (e\_coli,9.75322) (einstein\_de,9.72622) (einstein\_en,9.90689) (fib41,9.87191) (influenza,9.80574) (kernel,9.86264) (para,9.93221) (worldleaders,9.49386) };
+
+		\end{groupplot}
+	\end{tikzpicture}
+	\caption{Substring query speed for $10^6$ queries.}
+	\label{fig:03:ssspeed}
+\end{figure}
+
+In \cref{fig:03:ssspeedbt} results for the different parameterizations of block trees are depicted.
+The arity (A in the figure) refers to the number of nodes that each block is recursively divided in.
+The prefix/suffix size (PS in the figure) is the number $k$ such that each block in the tree saves its first and last $k$ characters each, to facilitate faster substring queries.
+For the exact workings of the query, we refer to the original paper by \citeauthor{belazzougui_block_2021} \cite{belazzougui_block_2021}.
+
+\begin{figure}
+	\begin{tikzpicture}
+		\begin{groupplot}[height=25cm,group style={group size= 1 by 2}]
+			\nextgroupplot[
+				title={Substrings of length $10$},
+				width=15cm,
+				height=8cm,
+				ylabel={Time for $10^{6}$ queries [$\lg_{2}$ ms]},
+				legend pos=north east,
+				plotticks,
+				xtick=\empty,
+				ybar,
+				bar width=1.5mm,
+				cycle list name=algsbar
+			]
+			%% MULTIPLOT(ds,arity,prefix_suffix) SELECT input_file AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE type='substring' AND NOT input_file LIKE "%200" AND substring_length=10 AND (not prefix_suffix=0 or ds='string') GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
+			\addplot coordinates { (cere,9.59897) (coreutils,9.82879) (e\_coli,9.52913) (einstein\_de,9.66734) (einstein\_en,9.85104) (fib41,10.024) (influenza,9.2275) (kernel,9.83453) (para,9.59932) (worldleaders,9.55067) };
+			\addlegendentry{ds=blocktree,arity=2,prefix\_suffix=4};
+			\addplot coordinates { (cere,8.34207) (coreutils,8.48985) (e\_coli,8.22159) (einstein\_de,8.18982) (einstein\_en,8.36412) (fib41,8.47168) (influenza,7.92777) (kernel,8.46556) (para,8.29691) (worldleaders,8.07142) };
+			\addlegendentry{ds=blocktree,arity=2,prefix\_suffix=16};
+			\addplot coordinates { (cere,8.1541) (coreutils,8.26343) (e\_coli,7.86274) (einstein\_de,7.91317) (einstein\_en,8.04882) (fib41,8.56795) (influenza,7.66521) (kernel,8.17628) (para,8.04939) (worldleaders,7.70784) };
+			\addlegendentry{ds=blocktree,arity=32,prefix\_suffix=4};
+			\addplot coordinates { (cere,7.65506) (coreutils,7.67575) (e\_coli,7.39431) (einstein\_de,7.04811) (einstein\_en,7.19455) (fib41,7.33089) (influenza,7.31217) (kernel,7.4493) (para,7.6097) (worldleaders,7.0091) };
+			\addlegendentry{ds=blocktree,arity=32,prefix\_suffix=16};
+			\addplot coordinates { (cere,5.75489) (coreutils,5.72792) (e\_coli,5.64386) (einstein\_de,5.64386) (einstein\_en,5.75489) (fib41,5.70044) (influenza,5.70044) (kernel,5.72792) (para,5.72792) (worldleaders,5.52356) };
+			\addlegendentry{ds=string,arity=,prefix\_suffix=};
+
+			\nextgroupplot[
+				title={Substrings of length $10,000$},
+				width=15cm,
+				height=8cm,
+				ylabel={Time for $10^{6}$ queries [$\lg_{2}$ ms]},
+				legend pos=north east,
+				plotticks,
+				plotlabels,
+				ybar,
+				bar width=1.5mm,
+				cycle list name=algsbar
+			]
+			%% MULTIPLOT(ds,arity,prefix_suffix) SELECT input_file AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE type='substring' AND NOT input_file LIKE "%200" AND substring_length=10000 AND (not prefix_suffix=0 or ds='string') GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
+			\addplot coordinates { (cere,18.8403) (coreutils,19.1041) (e\_coli,18.8392) (einstein\_de,19.0291) (einstein\_en,19.1602) (fib41,19.4844) (influenza,18.4945) (kernel,19.1322) (para,18.7615) (worldleaders,19.005) };
+			\addplot coordinates { (cere,17.1538) (coreutils,17.2951) (e\_coli,17.087) (einstein\_de,17.2565) (einstein\_en,17.3388) (fib41,17.6107) (influenza,16.8231) (kernel,17.3243) (para,17.0559) (worldleaders,17.2475) };
+			\addplot coordinates { (cere,17.0671) (coreutils,17.225) (e\_coli,16.8793) (einstein\_de,17.2456) (einstein\_en,17.3977) (fib41,17.8574) (influenza,16.5579) (kernel,17.3413) (para,16.9123) (worldleaders,17.021) };
+			\addplot coordinates { (cere,15.9288) (coreutils,15.9545) (e\_coli,15.7424) (einstein\_de,16.0647) (einstein\_en,16.0647) (fib41,16.3773) (influenza,15.5812) (kernel,16.0314) (para,15.8348) (worldleaders,15.8949) };
+			\addplot coordinates { (cere,9.93369) (coreutils,9.83763) (e\_coli,9.75322) (einstein\_de,9.72622) (einstein\_en,9.90689) (fib41,9.87191) (influenza,9.80574) (kernel,9.86264) (para,9.93221) (worldleaders,9.49386) };
+
+		\end{groupplot}
+	\end{tikzpicture}
+	\caption{Substring query speed for $10^6$ queries.}
+	\label{fig:03:ssspeedbt}
+\end{figure}
+
+
 \section{Conclusion}
 
-\printbibliography
+\include{bib.tex}
 
 \end{document}
