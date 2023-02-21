@@ -275,7 +275,7 @@ The prefix/suffix size (PS in the figure) is the number $ps$ such that each bloc
 If no data is saved ($ps = 0$) then the substring query is implemented naively, using random access queries for each character.
 Other parameters have not shown to have a noticable effect, so they are omitted.
 For the exact workings of the queries, we refer to the original paper by \citeauthor{belazzougui_block_2021} \cite{belazzougui_block_2021}.
-In the figures, a block tree with arity $2$ and prefix suffix size $4$ would be labeled as $A2PS4$ for brevity's sake.
+In the figures, a block tree with arity $2$ and prefix suffix size $4$ would be labeled as A2PS4 for brevity's sake.
 
 For sampled scan we use a sample parameter of $512$.
 For every dataset we use a grammar created by Re-Pair \cite{larsson_off-line_2000} and Sequitur \cite{nevill-manning_identifying_1997} respectively.
@@ -296,7 +296,10 @@ Though, for substrings, only figures for lengths $10$ and $10,000$ will be showc
 
 Out of the compressed formats, the block tree is the clear winner in most cases, the A32PS16 parameterization never being slower than $\texttt{std::string}$ by a factor of more than $4$,
 most of the time being ahead by several orders of magnitude in comparison to the others.
-We can see that the arity does have a performance impact, with higher arity block trees performing better than lower arity block trees.
+We can see that the block tree's arity does have a performance impact, with higher arity block trees performing better than lower arity block trees.
+We also see that for sampled scan, whether the datastructure built on the RePair or Sequitur grammar is faster depends on the dataset.
+But all in all the difference is not significant and the grammars were in many cases several orders of magnitude slower than the block trees.
+The \lzend{} data structure was the slowest on every dataset in this benchmark.
 
 \begin{figure}[t]
 	\begin{tikzpicture}
@@ -308,24 +311,28 @@ We can see that the arity does have a performance impact, with higher arity bloc
 				ylabel={Time for $10^{6}$ queries [$\lg_{2}$ ms]},
 				legend pos=north east,
 				plotticks,
-				xtick=\empty,
+				plotlabels,
 				ybar,
-				bar width=1.5mm,
-				cycle list name=algsbar
+				bar width=1.2mm,
+				cycle list name=algsbar,
+        legend style={at={(0.5,1.25)},anchor=center},
+        legend columns=3
 			]
-			%% MULTIPLOT(ds,arity) SELECT input_file AS x, MIN(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% MULTIPLOT(ds,filetype,arity) SELECT input_file AS x, MIN(LOG(2, query_time_total)) AS y, MULTIPLOT
 			%% FROM data WHERE type='random_access' AND NOT input_file LIKE "%200"
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
    \addplot coordinates { (cere,8.02237) (coreutils,8.17991) (e\_coli,7.88264) (einstein\_de,8.02791) (einstein\_en,8.25739) (fib41,8.29921) (influenza,7.62936) (kernel,8.15987) (para,8.0) (worldleaders,7.89482) };
-   \addlegendentry{ds=blocktree,arity=2};
+   \addlegendentry{A2PS*};
    \addplot coordinates { (cere,7.03342) (coreutils,7.11894) (e\_coli,6.75489) (einstein\_de,6.22882) (einstein\_en,6.56986) (fib41,6.83289) (influenza,6.53916) (kernel,6.80735) (para,6.9542) (worldleaders,6.08746) };
-   \addlegendentry{ds=blocktree,arity=32};
+   \addlegendentry{A32PS*};
    \addplot coordinates { (cere,12.9549) (coreutils,13.3012) (e\_coli,12.7634) (einstein\_de,12.4686) (einstein\_en,12.9121) (fib41,13.4246) (influenza,13.2559) (kernel,12.8803) (para,12.9706) (worldleaders,13.67) };
-   \addlegendentry{ds=lzend,arity=};
-   \addplot coordinates { (cere,10.774) (cere,10.733) (coreutils,10.7814) (coreutils,10.5255) (e\_coli,10.668) (e\_coli,9.89482) (einstein\_de,8.88264) (einstein\_de,8.60733) (einstein\_en,8.93958) (einstein\_en,8.99435) (fib41,7.47573) (fib41,7.47573) (influenza,9.90539) (influenza,10.5333) (kernel,10.8865) (kernel,10.6519) (para,10.8634) (para,10.6537) (worldleaders,8.96867) (worldleaders,9.3837) };
-   \addlegendentry{ds=sampled\_scan\_512,arity=};
+   \addlegendentry{LzEnd};
+   \addplot coordinates { (cere,10.774) (coreutils,10.7814) (e\_coli,10.668) (einstein\_de,8.88264) (einstein\_en,8.93958) (fib41,7.47573) (influenza,9.90539) (kernel,10.8865) (para,10.8634) (worldleaders,8.96867) };
+   \addlegendentry{Sampled Scan (RePair)};
+   \addplot coordinates { (cere,10.733) (coreutils,10.5255) (e\_coli,9.89482) (einstein\_de,8.60733) (einstein\_en,8.99435) (fib41,7.47573) (influenza,10.5333) (kernel,10.6519) (para,10.6537) (worldleaders,9.3837) };
+   \addlegendentry{Sampled Scan (Sequitur)};
    \addplot coordinates { (cere,5.32193) (coreutils,5.2854) (e\_coli,5.20945) (einstein\_de,5.20945) (einstein\_en,5.32193) (fib41,5.24793) (influenza,5.2854) (kernel,5.32193) (para,5.32193) (worldleaders,5.08746) };
-   \addlegendentry{ds=string,arity=};
+   \addlegendentry{\texttt{std::string}};
 		\end{groupplot}
 	\end{tikzpicture}
 	\caption{Random access query speed for $10^6$ queries.}
@@ -333,8 +340,6 @@ We can see that the arity does have a performance impact, with higher arity bloc
 \end{figure}
 
 \subsubsection{Substring}
-
-\todo{lzend data still missing}
 
 As depicted in \cref{fig:03:ssspeed}, with substring queries the A32PS16 block tree still beats sampled scan.
 On very short substrings the block tree is several orders of magnitude faster than the grammar in most cases.
@@ -346,6 +351,10 @@ While the A32PS16 block tree is on average around a factor of $4$ faster than th
 it is still much slower than \texttt{std::string}.
 This is usually by a factor of around $2^6$ while the grammar hovers around being approximately $2^8$
 times slower than \texttt{std::string}.
+
+Even though the A2PS0 tree was the slowest block tree it still beat the \lzend{} data structure on every dataset except for \textbf{fib41},
+usually being about $4-8$ times faster.
+
 
 \begin{figure}
 	\begin{tikzpicture}
@@ -360,7 +369,9 @@ times slower than \texttt{std::string}.
 				xtick=\empty,
 				ybar,
 				bar width=1.2mm,
-				cycle list name=algsbar
+				cycle list name=algsbar,
+        legend style={at={(0.5,1.25)},anchor=center},
+        legend columns=3
 			]
 			%% MULTIPLOT(ds,filetype,arity,prefix_suffix) SELECT input_file AS x, MIN(LOG(2, query_time_total)) AS y, MULTIPLOT
 			%% FROM data
@@ -368,15 +379,17 @@ times slower than \texttt{std::string}.
 			%% AND (arity=2 AND prefix_suffix=0 OR arity=32 AND prefix_suffix=16 or ds!='blocktree')  
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
    \addplot coordinates { (cere,10.8065) (coreutils,11.0478) (e\_coli,10.7731) (einstein\_de,10.9887) (einstein\_en,11.1261) (fib41,11.3443) (influenza,10.3783) (kernel,11.0967) (para,10.7245) (worldleaders,10.9144) };
-   \addlegendentry{ds=blocktree,filetype=bt,arity=2,prefix\_suffix=0};
+   \addlegendentry{A2PS0};
    \addplot coordinates { (cere,7.5157) (coreutils,7.65105) (e\_coli,7.31288) (einstein\_de,6.97728) (einstein\_en,7.16993) (fib41,7.32193) (influenza,7.26679) (kernel,7.37504) (para,7.45121) (worldleaders,6.93074) };
-   \addlegendentry{ds=blocktree,filetype=bt,arity=32,prefix\_suffix=16};
+   \addlegendentry{A32PS16};
+   \addplot coordinates { (cere,14.9031) (coreutils,15.0466) (e\_coli,14.6792) (einstein\_de,14.059) (einstein\_en,14.2167) (fib41,14.1718) (influenza,14.7515) (kernel,14.855) (para,14.7967) (worldleaders,15.0138) };
+   \addlegendentry{LzEnd};
    \addplot coordinates { (cere,11.0841) (coreutils,11.1799) (e\_coli,11.0133) (einstein\_de,9.5411) (einstein\_en,9.66) (fib41,8.33539) (influenza,10.3151) (kernel,11.2432) (para,11.1674) (worldleaders,9.59991) };
-   \addlegendentry{ds=sampled\_scan\_512,filetype=rp,arity=,prefix\_suffix=};
+   \addlegendentry{Sampled Scan (RePair)};
    \addplot coordinates { (cere,11.1046) (coreutils,11.1222) (e\_coli,10.4988) (einstein\_de,9.41574) (einstein\_en,9.70908) (fib41,8.37938) (influenza,11.0007) (kernel,11.1755) (para,11.032) (worldleaders,10.021) };
-   \addlegendentry{ds=sampled\_scan\_512,filetype=seq,arity=,prefix\_suffix=};
+   \addlegendentry{Sampled Scan (Sequitur)};
    \addplot coordinates { (cere,5.75489) (coreutils,5.72792) (e\_coli,5.64386) (einstein\_de,5.64386) (einstein\_en,5.75489) (fib41,5.70044) (influenza,5.70044) (kernel,5.72792) (para,5.72792) (worldleaders,5.52356) };
-   \addlegendentry{ds=string,filetype=plaintext,arity=,prefix\_suffix=};
+   \addlegendentry{\texttt{std::string}};
 
 			\nextgroupplot[
 				title={Substrings of length $10,000$},
@@ -395,15 +408,11 @@ times slower than \texttt{std::string}.
 			%% AND (arity=2 AND prefix_suffix=0 OR arity=32 AND prefix_suffix=16 or ds!='blocktree')  
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
    \addplot coordinates { (cere,20.5576) (coreutils,20.842) (e\_coli,20.6036) (einstein\_de,20.6817) (einstein\_en,20.8775) (fib41,21.184) (influenza,20.1066) (kernel,20.8779) (para,20.4493) (worldleaders,20.6971) };
-   \addlegendentry{ds=blocktree,filetype=bt,arity=2,prefix\_suffix=0};
    \addplot coordinates { (cere,15.7818) (coreutils,15.8922) (e\_coli,15.5731) (einstein\_de,15.8991) (einstein\_en,16.0114) (fib41,16.3549) (influenza,15.3876) (kernel,15.9757) (para,15.773) (worldleaders,15.7193) };
-   \addlegendentry{ds=blocktree,filetype=bt,arity=32,prefix\_suffix=16};
+   \addplot coordinates { (cere,24.1556) (coreutils,24.1378) (e\_coli,23.9044) (einstein\_de,23.108) (einstein\_en,22.9621) (fib41,20.1354) (influenza,23.6527) (kernel,24.1372) (para,23.9779) (worldleaders,23.6986) };
    \addplot coordinates { (cere,18.2669) (coreutils,18.307) (e\_coli,18.3196) (einstein\_de,17.8303) (einstein\_en,17.8559) (fib41,16.836) (influenza,17.8795) (kernel,18.2382) (para,18.4188) (worldleaders,17.5317) };
-   \addlegendentry{ds=sampled\_scan\_512,filetype=rp,arity=,prefix\_suffix=};
    \addplot coordinates { (cere,18.419) (coreutils,18.7239) (e\_coli,18.3401) (einstein\_de,17.793) (einstein\_en,17.9275) (fib41,16.8349) (influenza,18.5641) (kernel,18.628) (para,18.3881) (worldleaders,17.7543) };
-   \addlegendentry{ds=sampled\_scan\_512,filetype=seq,arity=,prefix\_suffix=};
    \addplot coordinates { (cere,9.93369) (coreutils,9.83763) (e\_coli,9.75322) (einstein\_de,9.72622) (einstein\_en,9.90689) (fib41,9.87191) (influenza,9.80574) (kernel,9.86264) (para,9.93221) (worldleaders,9.49386) };
-   \addlegendentry{ds=string,filetype=plaintext,arity=,prefix\_suffix=};
 
 		\end{groupplot}
 	\end{tikzpicture}
@@ -435,25 +444,27 @@ it was still around $2^6$ times slower than \texttt{std::string} for substring o
 				xtick=\empty,
 				ybar,
 				bar width=1mm,
-				cycle list name=algsbar
+				cycle list name=algsbar,
+        legend style={at={(0.5,1.25)},anchor=center},
+        legend columns=4
 			]
 			%% MULTIPLOT(ds,arity,prefix_suffix) SELECT input_file AS x, MIN(LOG(2, query_time_total)) AS y, MULTIPLOT
 			%% FROM data WHERE type='substring' AND NOT input_file LIKE "%200" AND substring_length=10 AND (ds='blocktree' or ds='string')
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
    \addplot coordinates { (cere,10.8065) (coreutils,11.0478) (e\_coli,10.7731) (einstein\_de,10.9887) (einstein\_en,11.1261) (fib41,11.3443) (influenza,10.3783) (kernel,11.0967) (para,10.7245) (worldleaders,10.9144) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=0};
+   \addlegendentry{A2PS0};
    \addplot coordinates { (cere,9.52552) (coreutils,9.75822) (e\_coli,9.43254) (einstein\_de,9.62388) (einstein\_en,9.80574) (fib41,9.98726) (influenza,9.14211) (kernel,9.76818) (para,9.48784) (worldleaders,9.49586) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=4};
+   \addlegendentry{A2PS4};
    \addplot coordinates { (cere,8.33985) (coreutils,8.48784) (e\_coli,8.21917) (einstein\_de,8.18488) (einstein\_en,8.35755) (fib41,8.47168) (influenza,7.92481) (kernel,8.46352) (para,8.29462) (worldleaders,8.0607) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=16};
+   \addlegendentry{A2PS16};
    \addplot coordinates { (cere,8.8009) (coreutils,9.16491) (e\_coli,8.58496) (einstein\_de,8.85798) (einstein\_en,9.18488) (fib41,9.74483) (influenza,8.20945) (kernel,9.18735) (para,8.76155) (worldleaders,8.55842) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=0};
+   \addlegendentry{A32PS0};
    \addplot coordinates { (cere,7.97728) (coreutils,8.20945) (e\_coli,7.74819) (einstein\_de,7.75489) (einstein\_en,7.99435) (fib41,8.56605) (influenza,7.56224) (kernel,8.11894) (para,7.91886) (worldleaders,7.53916) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=4};
+   \addlegendentry{A32PS4};
    \addplot coordinates { (cere,7.5157) (coreutils,7.65105) (e\_coli,7.31288) (einstein\_de,6.97728) (einstein\_en,7.16993) (fib41,7.32193) (influenza,7.26679) (kernel,7.37504) (para,7.45121) (worldleaders,6.93074) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=16};
+   \addlegendentry{A32PS16};
    \addplot coordinates { (cere,5.75489) (coreutils,5.72792) (e\_coli,5.64386) (einstein\_de,5.64386) (einstein\_en,5.75489) (fib41,5.70044) (influenza,5.70044) (kernel,5.72792) (para,5.72792) (worldleaders,5.52356) };
-   \addlegendentry{ds=string,arity=,prefix\_suffix=};
+   \addlegendentry{\texttt{std::string}};
 
 			\nextgroupplot[
 				title={Substrings of length $10,000$ (Block Tree)},
@@ -471,19 +482,12 @@ it was still around $2^6$ times slower than \texttt{std::string} for substring o
 			%% FROM data WHERE type='substring' AND NOT input_file LIKE "%200" AND substring_length=10000 AND (ds='blocktree' or ds='string')
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
    \addplot coordinates { (cere,20.5576) (coreutils,20.842) (e\_coli,20.6036) (einstein\_de,20.6817) (einstein\_en,20.8775) (fib41,21.184) (influenza,20.1066) (kernel,20.8779) (para,20.4493) (worldleaders,20.6971) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=0};
    \addplot coordinates { (cere,18.7889) (coreutils,19.042) (e\_coli,18.781) (einstein\_de,18.9752) (einstein\_en,19.1078) (fib41,19.4413) (influenza,18.3955) (kernel,19.0788) (para,18.6952) (worldleaders,18.9423) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=4};
    \addplot coordinates { (cere,17.1533) (coreutils,17.294) (e\_coli,17.0865) (einstein\_de,17.2558) (einstein\_en,17.3386) (fib41,17.6095) (influenza,16.8191) (kernel,17.3217) (para,17.0529) (worldleaders,17.2465) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=16};
    \addplot coordinates { (cere,18.3728) (coreutils,18.7968) (e\_coli,18.1782) (einstein\_de,18.6536) (einstein\_en,18.9981) (fib41,19.5404) (influenza,17.6393) (kernel,18.9274) (para,18.3572) (worldleaders,18.3521) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=0};
    \addplot coordinates { (cere,16.8732) (coreutils,17.1904) (e\_coli,16.6747) (einstein\_de,17.0707) (einstein\_en,17.3762) (fib41,17.8553) (influenza,16.2874) (kernel,17.3102) (para,16.8629) (worldleaders,16.8267) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=4};
    \addplot coordinates { (cere,15.7818) (coreutils,15.8922) (e\_coli,15.5731) (einstein\_de,15.8991) (einstein\_en,16.0114) (fib41,16.3549) (influenza,15.3876) (kernel,15.9757) (para,15.773) (worldleaders,15.7193) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=16};
    \addplot coordinates { (cere,9.93369) (coreutils,9.83763) (e\_coli,9.75322) (einstein\_de,9.72622) (einstein\_en,9.90689) (fib41,9.87191) (influenza,9.80574) (kernel,9.86264) (para,9.93221) (worldleaders,9.49386) };
-   \addlegendentry{ds=string,arity=,prefix\_suffix=};
 
 		\end{groupplot}
 	\end{tikzpicture}
@@ -507,22 +511,24 @@ it was still around $2^6$ times slower than \texttt{std::string} for substring o
 				xtick=\empty,
 				ybar,
 				bar width=1.2mm,
-				cycle list name=algsbar
+				cycle list name=algsbar,
+        legend style={at={(0.5,1.25)},anchor=center},
+        legend columns=3
 			]
 			%% MULTIPLOT(ds,filetype,arity,prefix_suffix) SELECT input_file AS x, MIN(space * 100.0 / input_size) AS y, MULTIPLOT
 			%% FROM data WHERE NOT input_file LIKE "%200" AND ds!="string"
 			%% AND (arity=2 AND prefix_suffix=0 OR arity=32 AND prefix_suffix=16 or ds!='blocktree')  
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
    \addplot coordinates { (cere,2.64078) (coreutils,5.01461) (e\_coli,11.1591) (einstein\_de,0.30455) (einstein\_en,0.169289) (fib41,0.00182745) (influenza,4.32016) (kernel,2.0553) (para,3.77156) (worldleaders,3.02533) };
-   \addlegendentry{ds=blocktree,filetype=bt,arity=2,prefix\_suffix=0};
+   \addlegendentry{A2PS0};
    \addplot coordinates { (cere,13.0709) (coreutils,28.8438) (e\_coli,33.0989) (einstein\_de,6.04444) (einstein\_en,3.63183) (fib41,0.00144524) (influenza,28.6874) (kernel,11.3736) (para,14.0303) (worldleaders,33.1738) };
-   \addlegendentry{ds=blocktree,filetype=bt,arity=32,prefix\_suffix=16};
+   \addlegendentry{A32PS16};
    \addplot coordinates { (cere,3.44954) (coreutils,7.57514) (e\_coli,18.7515) (einstein\_de,0.588544) (einstein\_en,0.325256) (fib41,0.0725531) (influenza,8.48877) (kernel,3.10165) (para,5.36822) (worldleaders,4.67683) };
-   \addlegendentry{ds=lzend,filetype=lzend,arity=,prefix\_suffix=};
+   \addlegendentry{LzEnd};
    \addplot coordinates { (cere,3.66247) (coreutils,4.78419) (e\_coli,6.80754) (einstein\_de,2.46492) (einstein\_en,2.39754) (fib41,2.3438) (influenza,3.07129) (kernel,3.47155) (para,3.87532) (worldleaders,3.44297) };
-   \addlegendentry{ds=sampled\_scan\_512,filetype=rp,arity=,prefix\_suffix=};
+   \addlegendentry{Sampled Scan (RePair)};
    \addplot coordinates { (cere,3.34277) (coreutils,3.77539) (e\_coli,4.81625) (einstein\_de,2.45602) (einstein\_en,2.40394) (fib41,2.3438) (influenza,3.63565) (kernel,3.14076) (para,3.366) (worldleaders,3.42611) };
-   \addlegendentry{ds=sampled\_scan\_512,filetype=seq,arity=,prefix\_suffix=};
+   \addlegendentry{Sampled Scan (Sequitur)};
 
 			\nextgroupplot[
 				title={Storage Space (Block Trees)},
@@ -534,23 +540,24 @@ it was still around $2^6$ times slower than \texttt{std::string} for substring o
 				plotlabels,
 				ybar,
 				bar width=1mm,
-				cycle list name=algsbar
+				cycle list name=algsbar,
+        legend columns=3
 			]
 			%% MULTIPLOT(ds,arity,prefix_suffix) SELECT input_file AS x, MIN(space * 100.0 / input_size) AS y, MULTIPLOT
 			%% FROM data WHERE NOT input_file LIKE "%200" AND ds="blocktree"
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
    \addplot coordinates { (cere,2.64078) (coreutils,5.01461) (e\_coli,11.1591) (einstein\_de,0.30455) (einstein\_en,0.169289) (fib41,0.00182745) (influenza,4.32016) (kernel,2.0553) (para,3.77156) (worldleaders,3.02533) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=0};
+   \addlegendentry{A2PS0};
    \addplot coordinates { (cere,5.12006) (coreutils,17.2897) (e\_coli,24.1401) (einstein\_de,1.16203) (einstein\_en,0.696629) (fib41,0.00222758) (influenza,12.7618) (kernel,6.49618) (para,6.9103) (worldleaders,11.6888) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=4};
+   \addlegendentry{A2PS4};
    \addplot coordinates { (cere,12.3377) (coreutils,37.2673) (e\_coli,51.7463) (einstein\_de,3.14863) (einstein\_en,1.88739) (fib41,0.00248736) (influenza,32.3489) (kernel,12.9805) (para,16.0016) (worldleaders,29.9016) };
-   \addlegendentry{ds=blocktree,arity=2,prefix\_suffix=16};
+   \addlegendentry{A2PS16};
    \addplot coordinates { (cere,6.30836) (coreutils,17.8846) (e\_coli,22.4602) (einstein\_de,1.55953) (einstein\_en,0.854001) (fib41,0.000958515) (influenza,15.9965) (kernel,6.02301) (para,7.80101) (worldleaders,14.7503) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=0};
+   \addlegendentry{A32PS0};
    \addplot coordinates { (cere,7.99903) (coreutils,20.6245) (e\_coli,25.12) (einstein\_de,2.68259) (einstein\_en,1.58092) (fib41,0.00113171) (influenza,19.1693) (kernel,7.44751) (para,9.69558) (worldleaders,19.3564) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=4};
+   \addlegendentry{A32PS4};
    \addplot coordinates { (cere,13.0709) (coreutils,28.8438) (e\_coli,33.0989) (einstein\_de,6.04444) (einstein\_en,3.63183) (fib41,0.00144524) (influenza,28.6874) (kernel,11.3736) (para,14.0303) (worldleaders,33.1738) };
-   \addlegendentry{ds=blocktree,arity=32,prefix\_suffix=16};
+   \addlegendentry{A32PS16};
 		\end{groupplot}
 	\end{tikzpicture}
 	\caption{Storage space in RAM for the compressed formats.}
@@ -563,7 +570,12 @@ The notable exceptions to this are \textbf{fib41} and the \textbf{einstein} data
 \textbf{fib41} is the more extreme case here, block trees requiring a mere $0.1\%$ space of its input, even on its A32PS16 parameterization.
 The grammars on the other hand required around $2.34\%$ space.
 
-One other interesting property of the block tree results is the relation of their arity and prefix/suffix size to their resulting size.
+We can also see that the size of \lzend{} correlates with the size of block trees.
+While \lzend{} seems to have a larger overhead or worse compression overall, whenever \lzend{} compressed very efficiently (e.g. \textbf{fib41} or \textbf{einstein}),
+block trees also do, taking up even less space.
+The most likely reason for this that both of these data structures form an approximation of the LZ77 parsing \cite{ziv_universal_1977,belazzougui_block_2021,kempa_lz-end_2017}.
+
+An interesting property of the block tree results is the relation of their arity and prefix/suffix size to their resulting size.
 When looking at the block trees with arity $2$, we can see that even though it compresses better than arity $32$ at a base level,
 increasing the prefix/suffix size leads to a dramatic increase in space consumption.
 For example, on the \textbf{e\_coli} dataset, the arity $2$ block tree goes from $11\%$ at $ps = 0$ to $24\%$ at $ps=4$ to finally $51\%$ space at $ps=16$.
