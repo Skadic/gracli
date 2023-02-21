@@ -50,7 +50,6 @@ For some parameters $s, \tau \geq 2$, we divide $T$ into $s$ blocks of equal siz
 This procedure is recursively applied to each block, yielding a $\tau$-ary tree, except for the root which has degree $s$.
 This tree compressed by identifying blocks, whose content appears to the left of this block on the same level.
 Such blocks are replaced by blocks pointing at the previous occurrence.
-An example is given in \todo{make block tree figure}.
 Again, for formal definitions and explanations of the data structure, we refer to the original paper by \citeauthor{belazzougui_block_2021} \cite{belazzougui_block_2021}.
 In this evaluation, an implementation by Reyes\footnote{\url{https://github.com/elarielcl/MinimalistBlockTrees}} is used, which we augmented with support for faster substring operations.\footnote{\url{https://github.com/Skadic/MinimalistBlockTrees}}
 
