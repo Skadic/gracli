@@ -1,0 +1,85 @@
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{tikz}
+\usetikzlibrary{calc,shapes,matrix,fit,calc}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\pgfplotsset{compat=newest}
+\usepackage{lscape}
+
+
+\pgfplotscreateplotcyclelist{algs}{%
+	lime!80!black,every mark/.append style={fill=lime},mark=square*\\%
+	red,every mark/.append style={fill=red},mark=triangle*\\%
+	teal,every mark/.append style={fill=teal!80},mark=pentagon*\\%
+	black,mark=star\\%
+	purple!30!blue,every mark/.append style={fill=purple!30!blue},mark=diamond*\\%
+	orange!80!black,every mark/.append style={solid,fill=orange},mark=*\\%
+	yellow!80!black,every mark/.append style={fill=yellow},mark=diamond*\\%
+	pink!50!red,every mark/.append style={solid,fill=pink!80!red},mark=*\\%
+	purple!80!blue,every mark/.append style={solid,fill=purple},mark=*\\%
+}
+
+\pgfplotscreateplotcyclelist{algsbar}{%
+	lime!80!black,fill=lime\\%
+	red,fill=red\\%
+	teal,fill=teal!80\\%
+	black,fill=black!80\\%
+	purple!30!blue,fill=purple!30!blue\\%
+	orange!80!black,fill=orange\\%
+	cyan!80!black,fill=cyan\\%
+	yellow!80!black,fill=yellow\\%
+	pink!80!black,fill=pink\\%
+}
+
+\pgfplotsset{
+	plotlabels/.style={
+			xlabel={Dataset},
+			%xlabel style ={yshift=-2cm},
+			xtick={
+					fib41,
+					cere,
+					e\_coli,
+					influenza,
+					para,
+					einstein\_de,
+					einstein\_en,
+					coreutils,
+					kernel,
+					worldleaders,
+				},
+			xticklabel style={rotate=-90},%, xshift=0.5cm, yshift=4mm,
+		},
+	plotticks/.style ={
+			symbolic x coords={
+					fib41,
+					cere,
+					e\_coli,
+					influenza,
+					para,
+					einstein\_de,
+					einstein\_en,
+					coreutils,
+					kernel,
+					worldleaders,
+				},
+		}
+}
+
+\usepackage{todonotes}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+
+
+\newcommand{\lzend}{LZ-End}
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
+
+\usepackage{biblatex}
+\addbibresource{Random Access.bib}
+
+
