@@ -9,10 +9,12 @@
 
 #include <bm64.h>
 #include <compute_lzend.hpp>
+#include <sdsl/sd_vector.hpp>
 
 namespace gracli::lz {
 /**
- * @brief Random access implementation on an Lz-End parsing based on the paper "Self-Index Based on LZ77" by Kreft and Navarro.
+ * @brief Random access implementation on an Lz-End parsing based on the paper "Self-Index Based on LZ77" by Kreft and
+ * Navarro.
  *
  * The paper can be found at https://arxiv.org/abs/1101.4065
  */
@@ -23,8 +25,9 @@ class LzEnd {
     using Phrase     = lzend_phrase<Char, TextOffset, TextOffset>;
     using Parsing    = space_efficient_vector<Phrase>;
 
-    using BitVec     = bm::bvector<>;
-    using RankSelect = BitVec::rs_index_type;
+    using BitVec = sdsl::sd_vector<sdsl::bit_vector>;
+    using Rank   = sdsl::rank_support_sd<1, sdsl::bit_vector>;
+    using Select = sdsl::select_support_sd<1, sdsl::bit_vector>;
 
   private:
     /**
@@ -37,8 +40,9 @@ class LzEnd {
      * @brief For each text position, stores a 1 if the position is the last character of a phrase.
      * In the original paper, this is B.
      */
-    BitVec                      m_last_pos;
-    std::unique_ptr<RankSelect> m_last_pos_rs;
+    BitVec m_last_pos;
+    Rank   m_last_pos_r;
+    Select m_last_pos_s;
 
     /**
      * @brief For each text position respectively contains a 1 for each source starting at this position, followed by a
@@ -49,8 +53,9 @@ class LzEnd {
      *
      * In the original paper, this is S.
      */
-    BitVec                      m_source_begin;
-    std::unique_ptr<RankSelect> m_source_begin_rs;
+    BitVec m_source_begin;
+    Rank   m_source_begin_r;
+    Select m_source_begin_s;
 
     /**
      * @brief Maps a phrase to the index of its source.
@@ -67,21 +72,29 @@ class LzEnd {
     auto num_phrases() const -> size_t { return m_last.size(); }
 
   private:
-    auto rank1_last_pos(const size_t i) const -> size_t { return m_last_pos.rank(i, *m_last_pos_rs); }
+    /**
+     * @brief Inclusive rank on the `m_last_pos` bit vector.
+     * @return The number of ones up to and including i
+     */
+    inline auto rank1_last_pos(const size_t i) const -> size_t { return m_last_pos_r.rank(i + 1); }
 
-    auto rank1_source_begin(const size_t i) const -> size_t { return m_source_begin.rank(i, *m_source_begin_rs); }
+    /**
+     * @brief Inclusive rank on the `m_source_begin` bit vector.
+     * @return The number of ones up to and including i
+     */
+    inline auto rank1_source_begin(const size_t i) const -> size_t { return m_source_begin_r.rank(i + 1); }
 
-    auto select1_last_pos(const size_t i) const -> size_t {
-        BitVec::size_type pos;
-        m_last_pos.select(i, pos, *m_last_pos_rs);
-        return pos;
-    }
+    /**
+     * @brief Select on the `m_last_pos` bit vector.
+     * @return The index of the ith one.
+     */
+    inline auto select1_last_pos(const size_t i) const -> size_t { return m_last_pos_s.select(i); }
 
-    auto select1_source_begin(const size_t i) const -> size_t {
-        BitVec::size_type pos;
-        m_source_begin.select(i, pos, *m_source_begin_rs);
-        return pos;
-    }
+    /**
+     * @brief Select on the `m_source_begin` bit vector.
+     * @return The index of the ith one.
+     */
+    inline auto select1_source_begin(const size_t i) const -> size_t { return m_source_begin_s.select(i); }
 
     void build_aux_ds(Parsing &&parsing) {
         size_t n_phrases = parsing.size();
@@ -94,21 +107,28 @@ class LzEnd {
         size_t mem;
 
         m_last.reserve(n_phrases + 1);
-        m_last_pos.resize(n + 1);
+        /// m_last_pos.resize(n + 1);
 
         size_t current_index = 0;
+
+        sdsl::sd_vector_builder svb(n, n_phrases);
 
         // Calculate all end positions of phrase_source_start and store them
         for (size_t i = 0; i < n_phrases; i++) {
             Phrase &f = parsing[i];
             m_last.push_back(f.m_char);
             current_index += f.m_len;
-            m_last_pos.set(current_index - 1);
+            /// m_last_pos.set(current_index - 1);
+            svb.set(current_index - 1);
         }
 
-        m_last_pos.optimize();
-        m_last_pos.freeze();
-        m_last_pos.build_rs_index(m_last_pos_rs.get());
+        m_last_pos   = sdsl::sd_vector(svb);
+        m_last_pos_r = Rank(&m_last_pos);
+        m_last_pos_s = Select(&m_last_pos);
+
+        /// m_last_pos.optimize();
+        /// m_last_pos.freeze();
+        /// m_last_pos.build_rs_index(m_last_pos_rs.get());
 
         // Calculate the start indices of their phrase_source_start' sources
         std::vector<size_t> phrase_buffer;
@@ -153,12 +173,13 @@ class LzEnd {
         // The start index of the current phrase's source
         size_t start = phrase_source_start[source_map_raw[phrase_index]];
 
-        m_source_begin.resize(n + n_phrases);
+        /// m_source_begin.resize(n + n_phrases);
+        svb = sdsl::sd_vector_builder(n + n_phrases, n_phrases);
         // We iterate through the phrase_source_start in order of their source's appearance in the text
         // For every phrase that starts at a certain index, we place a 1, then we place a 0 (with a no-op) and repeat
         for (size_t i = 0; i < n; i++) {
             while (i == start && phrase_index < n_phrases) {
-                m_source_begin.set_bit(bit_index++);
+                svb.set(bit_index++);
                 phrase_index++;
                 if (phrase_index < n_phrases) {
                     start = phrase_source_start[source_map_raw[phrase_index]];
@@ -167,9 +188,13 @@ class LzEnd {
             bit_index++;
         }
 
-        m_source_begin.optimize();
-        m_source_begin.freeze();
-        m_source_begin.build_rs_index(m_source_begin_rs.get());
+        m_source_begin   = sdsl::sd_vector(svb);
+        m_source_begin_r = Rank(&m_source_begin);
+        m_source_begin_s = Select(&m_source_begin);
+
+        /// m_source_begin.optimize();
+        /// m_source_begin.freeze();
+        /// m_source_begin.build_rs_index(m_source_begin_rs.get());
 
         // TODO Kinda janky implementation. Surely this can be done better
 
@@ -198,26 +223,24 @@ class LzEnd {
         m_source_map.construct(source_map_raw);
     }
 
-    LzEnd() :
-        m_last{},
-        m_last_pos{},
-        m_last_pos_rs{new RankSelect()},
-        m_source_begin{},
-        m_source_begin_rs{new RankSelect()},
-        m_source_map{},
-        m_source_length{0} {}
+    LzEnd() : m_last{}, m_last_pos{}, m_source_begin{}, m_source_map{}, m_source_length{0} {}
 
   public:
     LzEnd(LzEnd &&other) noexcept :
         m_last{std::move(other.m_last)},
         m_last_pos{std::move(other.m_last_pos)},
-        m_last_pos_rs{std::move(other.m_last_pos_rs)},
         m_source_begin{std::move(other.m_source_begin)},
-        m_source_begin_rs{std::move(other.m_source_begin_rs)},
         m_source_map{std::move(other.m_source_map)},
-        m_source_length{other.m_source_length} {
-        // m_last_pos.build_rs_index(m_last_pos_rs.get());
-        // m_source_begin.build_rs_index(m_source_begin_rs.get());
+        m_source_length{other.m_source_length},
+        m_last_pos_r{&m_last_pos},
+        m_last_pos_s{&m_last_pos},
+        m_source_begin_r{&m_source_begin},
+        m_source_begin_s{&m_source_begin}
+    {
+        other.m_last_pos_r     = Rank(nullptr);
+        other.m_last_pos_s     = Select(nullptr);
+        other.m_source_begin_r = Rank(nullptr);
+        other.m_source_begin_s = Select(nullptr);
     }
 
     static LzEnd from_source_file(const std::string &file) {

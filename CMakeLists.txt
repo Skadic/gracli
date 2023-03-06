@@ -64,6 +64,10 @@ target_include_directories(libgracli INTERFACE external/oocmd/include)
 # progressbar
 target_include_directories(libgracli INTERFACE external/progressbar/include)
 
+# sdsl
+target_link_libraries(libgracli INTERFACE sdsl)
+target_include_directories(libgracli INTERFACE external/sdsl-lite/include)
+
 # tlx
 #add_subdirectory(external/tlx)
 #target_include_directories(libgracli INTERFACE external/tlx/tlx)
