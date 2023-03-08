@@ -217,7 +217,14 @@ class LzEnd {
         m_source_map.resize(word_packing::num_packs_required<size_t>(n_phrases, m_phrase_bits));
     }
 
-    LzEnd() : m_last{}, m_last_pos{}, m_source_begin{}, m_source_map{}, m_source_length{0}, m_index_bits{0}, m_phrase_bits{0} {}
+    LzEnd() :
+        m_last{},
+        m_last_pos{},
+        m_source_begin{},
+        m_source_map{},
+        m_source_length{0},
+        m_index_bits{0},
+        m_phrase_bits{0} {}
 
   public:
     LzEnd(LzEnd &&other) noexcept :
@@ -262,8 +269,8 @@ class LzEnd {
     }
 
     [[nodiscard]] auto at(size_t i) const -> char {
-        size_t phrase_id = m_last_pos_r.rank(i);
-        auto source_map = source_map_accessor();
+        size_t phrase_id  = m_last_pos_r.rank(i);
+        auto   source_map = source_map_accessor();
 
         while (!m_last_pos[i]) {
             // Find the source_phrase of this phrase
@@ -289,23 +296,17 @@ class LzEnd {
             return buf;
         }
 
-        const size_t end_incl = substr_start + substr_len - 1;
-        size_t       start_phrase;
-        if (substr_start > 0) {
-            start_phrase = rank1_last_pos(substr_start - 1);
-        } else {
-            start_phrase = 0;
-        }
-        size_t end_phrase;
-        if (end_incl > 0) {
-            end_phrase = rank1_last_pos(end_incl - 1);
-        } else {
-            end_phrase = 0;
-        }
+        const size_t end_incl     = substr_start + substr_len - 1;
+        size_t       start_phrase = m_last_pos_r.rank(substr_start);
+        size_t       end_phrase   = m_last_pos_r.rank(end_incl);
 
         auto source_map = source_map_accessor();
 
-        if (start_phrase == end_phrase) {
+        if (start_phrase == end_phrase)         if (end_incl > 0) {
+            end_phrase = rank1_last_pos(end_incl - 1);
+        } else {
+            end_phrase = 0;
+{
             // Find the source of this phrase
             size_t source       = source_map[start_phrase];
             size_t start        = select1_source_begin(source + 1) - source - 1;
