@@ -262,7 +262,7 @@ class LzEnd {
     }
 
     [[nodiscard]] auto at(size_t i) const -> char {
-        size_t phrase_id = i > 0 ? rank1_last_pos(i - 1) : 0;
+        size_t phrase_id = m_last_pos_r.rank(i);
         auto source_map = source_map_accessor();
 
         while (!m_last_pos[i]) {
@@ -277,7 +277,7 @@ class LzEnd {
 
             i = new_i;
             // Find the new i's phrase
-            phrase_id = i > 0 ? rank1_last_pos(i - 1) : 0;
+            phrase_id = m_last_pos_r.rank(i);
         }
         return (char) m_last[phrase_id];
     }
