@@ -302,11 +302,7 @@ class LzEnd {
 
         auto source_map = source_map_accessor();
 
-        if (start_phrase == end_phrase)         if (end_incl > 0) {
-            end_phrase = rank1_last_pos(end_incl - 1);
-        } else {
-            end_phrase = 0;
-{
+        if (start_phrase == end_phrase) {
             // Find the source of this phrase
             size_t source       = source_map[start_phrase];
             size_t start        = select1_source_begin(source + 1) - source - 1;
