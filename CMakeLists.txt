@@ -14,18 +14,18 @@ set(OMP_CANCELLATION ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 # Copy compile_commands into the root folder
 add_custom_target(
-  copy-compile-commands ALL
-  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_LIST_DIR}/compile_commands.json
-  COMMAND ${CMAKE_COMMAND} -E echo "Copied compile_commands.json into root folder"
+        copy-compile-commands ALL
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_CURRENT_LIST_DIR}/compile_commands.json
+        COMMAND ${CMAKE_COMMAND} -E echo "Copied compile_commands.json into root folder"
 )
 
 ## If ninja is used, this enables colored output for the build output
-option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
+option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
 if (${FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        add_compile_options (-fdiagnostics-color=always)
+        add_compile_options(-fdiagnostics-color=always)
     elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        add_compile_options (-fcolor-diagnostics)
+        add_compile_options(-fcolor-diagnostics)
     endif ()
 endif ()
 
@@ -78,31 +78,31 @@ add_subdirectory(external/word-packing)
 target_include_directories(libgracli INTERFACE external/word-packing/include)
 
 # These are only needed if this is standalone
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  # malloc_count
-  include(ExternalProject)
-  ExternalProject_Add(malloc_count
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/malloc_count
-    BUILD_COMMAND gcc -c -fpic -ldl ${CMAKE_CURRENT_SOURCE_DIR}/external/malloc_count/malloc_count.c
-    CONFIGURE_COMMAND ""
-    INSTALL_COMMAND ""
-  )
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    # malloc_count
+    include(ExternalProject)
+    ExternalProject_Add(malloc_count
+            PREFIX ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/malloc_count
+            BUILD_COMMAND gcc -c -fpic -ldl ${CMAKE_CURRENT_SOURCE_DIR}/external/malloc_count/malloc_count.c
+            CONFIGURE_COMMAND ""
+            INSTALL_COMMAND ""
+            )
 
-  add_library(libmalloc_count INTERFACE)
-  target_include_directories(libmalloc_count INTERFACE external/malloc_count)
-  target_link_libraries(libmalloc_count INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count/src/malloc_count-build/malloc_count.o)
+    add_library(libmalloc_count INTERFACE)
+    target_include_directories(libmalloc_count INTERFACE external/malloc_count)
+    target_link_libraries(libmalloc_count INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/external/malloc_count/src/malloc_count-build/malloc_count.o)
 
-  # -- executables --
-  add_executable(gracli src/main.cpp)
-  target_link_libraries(gracli libgracli)
-  target_link_libraries(gracli libmalloc_count)
+    # -- executables --
+    add_executable(gracli src/main.cpp)
+    target_link_libraries(gracli libgracli)
+    target_link_libraries(gracli libmalloc_count)
 
-  add_executable(grammar_stats src/grammar_stats.cpp)
-  target_link_libraries(grammar_stats libgracli)
+    add_executable(grammar_stats src/grammar_stats.cpp)
+    target_link_libraries(grammar_stats libgracli)
 
-  # -- tests --
-  # googletest
-  add_subdirectory(external/googletest)
-  add_subdirectory(test EXCLUDE_FROM_ALL)
-endif()
+    # -- tests --
+    # googletest
+    add_subdirectory(external/googletest)
+    add_subdirectory(test EXCLUDE_FROM_ALL)
+endif ()

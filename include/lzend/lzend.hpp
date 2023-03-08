@@ -69,45 +69,44 @@ class LzEnd {
     size_t m_source_length;
 
   public:
-    auto num_phrases() const -> size_t { return m_last.size(); }
+    [[nodiscard]] inline auto num_phrases() const -> size_t { return m_last.size(); }
 
   private:
     /**
      * @brief Inclusive rank on the `m_last_pos` bit vector.
      * @return The number of ones up to and including i
      */
-    inline auto rank1_last_pos(const size_t i) const -> size_t { return m_last_pos_r.rank(i + 1); }
+    [[nodiscard]] inline auto rank1_last_pos(const size_t i) const -> size_t { return m_last_pos_r.rank(i + 1); }
 
     /**
      * @brief Inclusive rank on the `m_source_begin` bit vector.
      * @return The number of ones up to and including i
      */
-    inline auto rank1_source_begin(const size_t i) const -> size_t { return m_source_begin_r.rank(i + 1); }
+    [[nodiscard]] inline auto rank1_source_begin(const size_t i) const -> size_t {
+        return m_source_begin_r.rank(i + 1);
+    }
 
     /**
      * @brief Select on the `m_last_pos` bit vector.
      * @return The index of the ith one.
      */
-    inline auto select1_last_pos(const size_t i) const -> size_t { return m_last_pos_s.select(i); }
+    [[nodiscard]] inline auto select1_last_pos(const size_t i) const -> size_t { return m_last_pos_s.select(i); }
 
     /**
      * @brief Select on the `m_source_begin` bit vector.
      * @return The index of the ith one.
      */
-    inline auto select1_source_begin(const size_t i) const -> size_t { return m_source_begin_s.select(i); }
+    [[nodiscard]] inline auto select1_source_begin(const size_t i) const -> size_t {
+        return m_source_begin_s.select(i);
+    }
 
     void build_aux_ds(Parsing &&parsing) {
         size_t n_phrases = parsing.size();
         size_t n         = m_source_length;
-        // The number of bits required to differentiate all phrases
-        size_t phrase_count_bits = ceil(log2((double) n_phrases));
         // The number of bits required to index the input
         size_t index_bits = ceil(log2((double) n));
 
-        size_t mem;
-
         m_last.reserve(n_phrases + 1);
-        /// m_last_pos.resize(n + 1);
 
         size_t current_index = 0;
 
@@ -118,7 +117,6 @@ class LzEnd {
             Phrase &f = parsing[i];
             m_last.push_back(f.m_char);
             current_index += f.m_len;
-            /// m_last_pos.set(current_index - 1);
             svb.set(current_index - 1);
         }
 
@@ -126,16 +124,11 @@ class LzEnd {
         m_last_pos_r = Rank(&m_last_pos);
         m_last_pos_s = Select(&m_last_pos);
 
-        /// m_last_pos.optimize();
-        /// m_last_pos.freeze();
-        /// m_last_pos.build_rs_index(m_last_pos_rs.get());
-
         // Calculate the start indices of their phrase_source_start' sources
         std::vector<size_t> phrase_buffer;
         phrase_buffer.resize(word_packing::num_packs_required<size_t>(n_phrases, index_bits));
         auto phrase_source_start = word_packing::accessor(phrase_buffer.data(), index_bits);
 
-        current_index = 0;
         for (size_t i = 0; i < n_phrases; i++) {
             Phrase &f = parsing[i];
             if (f.m_len == 1) {
@@ -153,7 +146,6 @@ class LzEnd {
 
         // for now this is used as a buffer to keep track of the sources
         // sorted ascending by their source's start index in the text
-        // TODO This doesn't really need to be a real vec. A compressed vec would work too but stl functions don't work
         std::vector<TextOffset> source_map_raw;
         source_map_raw.resize(n_phrases);
         std::iota(source_map_raw.begin(), source_map_raw.end(), 0);
@@ -173,7 +165,6 @@ class LzEnd {
         // The start index of the current phrase's source
         size_t start = phrase_source_start[source_map_raw[phrase_index]];
 
-        /// m_source_begin.resize(n + n_phrases);
         svb = sdsl::sd_vector_builder(n + n_phrases, n_phrases);
         // We iterate through the phrase_source_start in order of their source's appearance in the text
         // For every phrase that starts at a certain index, we place a 1, then we place a 0 (with a no-op) and repeat
@@ -191,12 +182,6 @@ class LzEnd {
         m_source_begin   = sdsl::sd_vector(svb);
         m_source_begin_r = Rank(&m_source_begin);
         m_source_begin_s = Select(&m_source_begin);
-
-        /// m_source_begin.optimize();
-        /// m_source_begin.freeze();
-        /// m_source_begin.build_rs_index(m_source_begin_rs.get());
-
-        // TODO Kinda janky implementation. Surely this can be done better
 
         // Calculate the actual source mapping
         // We first count how many sources start at each index in the text
@@ -235,17 +220,11 @@ class LzEnd {
         m_last_pos_r{&m_last_pos},
         m_last_pos_s{&m_last_pos},
         m_source_begin_r{&m_source_begin},
-        m_source_begin_s{&m_source_begin}
-    {
+        m_source_begin_s{&m_source_begin} {
         other.m_last_pos_r     = Rank(nullptr);
         other.m_last_pos_s     = Select(nullptr);
         other.m_source_begin_r = Rank(nullptr);
         other.m_source_begin_s = Select(nullptr);
-    }
-
-    static LzEnd from_source_file(const std::string &file) {
-        std::ifstream in(file, std::ios::binary);
-        return from_stream(in);
     }
 
     static LzEnd from_file(const std::string &file);
@@ -271,7 +250,7 @@ class LzEnd {
         return instance;
     }
 
-    auto at(size_t i) const -> char {
+    [[nodiscard]] auto at(size_t i) const -> char {
         size_t phrase_id = i > 0 ? rank1_last_pos(i - 1) : 0;
 
         while (!m_last_pos[i]) {
@@ -291,7 +270,9 @@ class LzEnd {
         return (char) m_last[phrase_id];
     }
 
-    auto substr(char *buf, const size_t substr_start, const size_t substr_len) const -> char * {
+  private:
+    [[nodiscard("internal substring method should adjust buffer pointer")]] auto
+    substr_internal(char *buf, const size_t substr_start, const size_t substr_len) const -> char * {
         if (substr_len == 0) {
             return buf;
         }
@@ -311,12 +292,6 @@ class LzEnd {
         }
 
         if (start_phrase == end_phrase) {
-            // If the substring is only 1 character and that character is the last character of the phrase,
-            // then we can just read it from the vector
-            // if (substr_len == 1 && substr_start == select1_last_pos(start_phrase)) {
-            //    *buf++ = *reinterpret_cast<char*>(&m_last[start_phrase]);
-            //    return buf;
-            //}
             // Find the source of this phrase
             size_t source       = m_source_map.next(start_phrase);
             size_t start        = select1_source_begin(source + 1) - source - 1;
@@ -328,11 +303,11 @@ class LzEnd {
 
             // If the substring ends before the phrase then we need to extract the entire thing from the sources alone
             if (substr_start + substr_len - 1 < phrase_end) {
-                buf = substr(buf, start, substr_len);
+                buf = substr_internal(buf, start, substr_len);
             } else {
                 // In the other case, we can extract the last character directly and only have to get the rest from the
                 // sources
-                buf    = substr(buf, start, substr_len - 1);
+                buf    = substr_internal(buf, start, substr_len - 1);
                 *buf++ = *reinterpret_cast<const char *>(&m_last[start_phrase]);
             }
             return buf;
@@ -361,18 +336,23 @@ class LzEnd {
             // If this is the end phrase and the substring ends before the end of the phrase
             // we need to extract the entire thing from sources alone
             if (i == end_phrase && phrase_start + len - 1 < phrase_end) {
-                buf = substr(buf, start, len);
+                buf = substr_internal(buf, start, len);
             } else {
                 // Otherwise we can get the last character of the phrase from the array and only the rest from the
                 // sources
-                buf    = substr(buf, start, len - 1);
+                buf    = substr_internal(buf, start, len - 1);
                 *buf++ = *reinterpret_cast<const char *>(&m_last[i]);
             }
         }
         return buf;
     }
 
-    auto source_length() const -> size_t { return m_source_length; }
+  public:
+    inline auto substr(char *buf, const size_t substr_start, const size_t substr_len) const -> char * {
+        return substr_internal(buf, substr_start, std::min(substr_len, source_length() - substr_start));
+    }
+
+    [[nodiscard]] inline auto source_length() const -> size_t { return m_source_length; }
 };
 
 } // namespace gracli::lz
