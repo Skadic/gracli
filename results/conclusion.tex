@@ -1,0 +1,16 @@
+\section{Conclusion}
+
+We have evaluated several compressed data structures in respect of their random access and substring queries and also their space consumption.
+When it comes to query speed, \emph{block trees} show the highest query speed, beating all others on any dataset by various amounts.
+On the other hand, if compression is the priority, then grammars show compression matching or beating block trees in many cases except on extremely repetetive data.
+Block trees were only keeping up by not storing any prefix/suffix data (A2PS0) and while compressing well, as seen in \cref{fig:03:ssspeedbt} have a very slow substring query speed.
+
+When observing tradeoffs, block trees of high arity and with high amounts of prefix/suffix data show the highest query speed while grammars offer high compression albeit at slower query speeds.
+
+In conclusion, if on repetetive data high compression is the most important objective and substring queries are of lower importance,
+then lower arity block trees without any prefix/suffix data seem to offer the best trade-offs.
+They compress reasonably well in most cases and also offer fast random access queries.
+
+If substring queries are a priority then high-arity block trees with prefix/suffix data or sampled scan seem to be the best choice.
+The block trees seem to compress a less efficiently in the majority of cases but offered higher performance.
+Grammars on the other hand seemed to compress a bit more consistently and efficiently, while having worse performance.

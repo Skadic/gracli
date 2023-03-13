@@ -52,7 +52,7 @@ This tree compresses by identifying blocks, whose content appears to the left of
 Such blocks are replaced by blocks pointing at the previous occurrence.
 We are left with a tree consisting of blocks, each representing a unique segment of the text, however the only blocks whose actual text content is saved is the blocks on the bottom level.
 
-To support accelerated substring queries, we choose a parameter $ps \in \mathbb{N}$ (prefix/suffix) and for each block we save the first and last $ps$ characters of the block.
+To support accelerated substring queries, we choose a parameter $ps \in \mathbb{N}$ (prefix/suffix) and for each block we save prefix/suffix data, that is the first and last $ps$ characters of the block each.
 If the block is smaller than $2 \cdot ps$, we save the entire block's content.
 For children of such a block, we do not need to store any prefix/suffix information.
 
@@ -281,7 +281,7 @@ The prefix/suffix size (PS in the figure) is the number $ps$ such that each bloc
 If no data is saved ($ps = 0$) then the substring query is implemented naively, using random access queries for each character.
 Other parameters have not shown to have a noticable effect, so they are omitted.
 For the exact workings of the queries, we refer to the original paper by \citeauthor{belazzougui_block_2021} \cite{belazzougui_block_2021}.
-In the figures, a block tree with arity $2$ and prefix suffix size $4$ would be labeled as A2PS4 for brevity's sake.
+In the following, a block tree with e.g. arity $2$ and prefix suffix size $4$ will be referred as A2PS4 for brevity's sake.
 
 For sampled scan we use a sampling rate of $512$.
 For every dataset we use a grammar created by Re-Pair \cite{larsson_off-line_2000} and Sequitur \cite{nevill-manning_identifying_1997} respectively.
@@ -414,17 +414,11 @@ usually being about $4-8$ times faster.
 			%% AND (arity=2 AND prefix_suffix=0 OR arity=32 AND prefix_suffix=16 or ds!='blocktree')  
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
 			\addplot coordinates { (cere,20.5576) (coreutils,20.842) (e\_coli,20.6036) (einstein\_de,20.6817) (einstein\_en,20.8775) (fib41,21.184) (influenza,20.1066) (kernel,20.8779) (para,20.4493) (worldleaders,20.6971) };
-			\addlegendentry{A2PS0};
 			\addplot coordinates { (cere,15.7818) (coreutils,15.8922) (e\_coli,15.5731) (einstein\_de,15.8991) (einstein\_en,16.0114) (fib41,16.3549) (influenza,15.3876) (kernel,15.9757) (para,15.773) (worldleaders,15.7193) };
-			\addlegendentry{A32PS16};
 			\addplot coordinates { (cere,22.0932) (coreutils,22.0423) (e\_coli,21.9074) (einstein\_de,22.9635) (einstein\_en,23.5386) (fib41,21.6626) (influenza,22.0934) (kernel,22.1399) (para,22.0543) (worldleaders,21.9583) };
-			\addlegendentry{LzEnd};
 			\addplot coordinates { (cere,18.2669) (coreutils,18.307) (e\_coli,18.3196) (einstein\_de,17.8303) (einstein\_en,17.8559) (fib41,16.836) (influenza,17.8795) (kernel,18.2382) (para,18.4188) (worldleaders,17.5317) };
-			\addlegendentry{Sampled Scan (RePair)};
 			\addplot coordinates { (cere,18.419) (coreutils,18.7239) (e\_coli,18.3401) (einstein\_de,17.793) (einstein\_en,17.9275) (fib41,16.8349) (influenza,18.5641) (kernel,18.628) (para,18.3881) (worldleaders,17.7543) };
-			\addlegendentry{Sampled Scan (Sequitur)};
 			\addplot coordinates { (cere,9.93369) (coreutils,9.83763) (e\_coli,9.75322) (einstein\_de,9.72622) (einstein\_en,9.90689) (fib41,9.87191) (influenza,9.80574) (kernel,9.86264) (para,9.93221) (worldleaders,9.49386) };
-			\addlegendentry{\texttt{std::string}};
 
 		\end{groupplot}
 	\end{tikzpicture}
@@ -494,19 +488,12 @@ it was still around $2^6$ times slower than \texttt{std::string} for substring o
 			%% FROM data WHERE type='substring' AND NOT input_file LIKE "%200" AND substring_length=10000 AND (ds='blocktree' or ds='string')
 			%% GROUP BY filetype, input_file, MULTIPLOT ORDER BY MULTIPLOT,x
 			\addplot coordinates { (cere,20.5576) (coreutils,20.842) (e\_coli,20.6036) (einstein\_de,20.6817) (einstein\_en,20.8775) (fib41,21.184) (influenza,20.1066) (kernel,20.8779) (para,20.4493) (worldleaders,20.6971) };
-			\addlegendentry{A2PS0};
 			\addplot coordinates { (cere,18.7889) (coreutils,19.042) (e\_coli,18.781) (einstein\_de,18.9752) (einstein\_en,19.1078) (fib41,19.4413) (influenza,18.3955) (kernel,19.0788) (para,18.6952) (worldleaders,18.9423) };
-			\addlegendentry{A2PS4};
 			\addplot coordinates { (cere,17.1533) (coreutils,17.294) (e\_coli,17.0865) (einstein\_de,17.2558) (einstein\_en,17.3386) (fib41,17.6095) (influenza,16.8191) (kernel,17.3217) (para,17.0529) (worldleaders,17.2465) };
-			\addlegendentry{A2PS16};
 			\addplot coordinates { (cere,18.3728) (coreutils,18.7968) (e\_coli,18.1782) (einstein\_de,18.6536) (einstein\_en,18.9981) (fib41,19.5404) (influenza,17.6393) (kernel,18.9274) (para,18.3572) (worldleaders,18.3521) };
-			\addlegendentry{A32PS0};
 			\addplot coordinates { (cere,16.8732) (coreutils,17.1904) (e\_coli,16.6747) (einstein\_de,17.0707) (einstein\_en,17.3762) (fib41,17.8553) (influenza,16.2874) (kernel,17.3102) (para,16.8629) (worldleaders,16.8267) };
-			\addlegendentry{A32PS4};
 			\addplot coordinates { (cere,15.7818) (coreutils,15.8922) (e\_coli,15.5731) (einstein\_de,15.8991) (einstein\_en,16.0114) (fib41,16.3549) (influenza,15.3876) (kernel,15.9757) (para,15.773) (worldleaders,15.7193) };
-			\addlegendentry{A32PS16};
 			\addplot coordinates { (cere,9.93369) (coreutils,9.83763) (e\_coli,9.75322) (einstein\_de,9.72622) (einstein\_en,9.90689) (fib41,9.87191) (influenza,9.80574) (kernel,9.86264) (para,9.93221) (worldleaders,9.49386) };
-			\addlegendentry{\texttt{std::string}};
 
 		\end{groupplot}
 	\end{tikzpicture}
@@ -614,7 +601,7 @@ Lastly, we look at tradeoffs between query speed for random access and substring
 
 \subsubsection{Random Access}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 	\begin{tikzpicture}
 		\begin{groupplot}[height=25cm,group style={group size= 1 by 1, horizontal sep=2cm, vertical sep=2cm}]
 			\nextgroupplot[
@@ -655,7 +642,7 @@ Lastly, we look at tradeoffs between query speed for random access and substring
 			\addlegendentry{Sampled Scan (Sequitur)};
 		\end{groupplot}
 	\end{tikzpicture}
-	\caption{Storage space in RAM plotted against query speed.}
+	\caption{Storage space in RAM plotted against random access query speed.}
 	\label{fig:03:spacetimera}
 \end{figure}
 
@@ -676,9 +663,7 @@ Overall, if only random access performance is of importance, A2PS0 block trees s
 A32PS0 block trees offer on average about $3$ times faster queries, they also occupy more than twice the space on average.
 If the block tree is very small to begin with, as it is for highly repetitive texts like \textbf{fib41} and \textbf{einstein}, then this space increase might be insignificant.
 
-\subsubsection{Substring}
-
-\begin{figure}[h]
+\begin{figure}[H]
 	\centering
 	\begin{tikzpicture}
 		\begin{groupplot}[
@@ -763,16 +748,19 @@ If the block tree is very small to begin with, as it is for highly repetitive te
 	\label{fig:03:spacetimess}
 \end{figure}
 
+\subsubsection{Substring}
+\label{subsubsec:03:substrtradeoff}
+
 For substring queries we can see in \cref{fig:03:spacetimess} that the speed advantage of the A2PS0 block tree in comparison to sampled scan now no longer exists, even for short substrings of length $10$.
 In fact, with growing substring length, sampled scan' performance becomes more competitive with block trees.
 This is especially apparent in the results for substrings of length $10,000$, where sampled scans' performance sits between A32PS0 and A32PS4 block trees.
-However, we can also see again that sampled scan occupies significantly less space. On average, A32PS0 block trees occupied about $3.5$ times as much space as sampled scan while being about $60\%$ slower for substrings of length $10,000$.  
+However, we can also see again that sampled scan occupies significantly less space. On average, A32PS0 block trees occupied about $3.5$ times as much space as sampled scan while being about $60\%$ slower for substrings of length $10,000$.
 
 In our tests, A32PS16 block trees offered the best performance, being about $4$ times faster than grammars for substrings of length $10,000$, though again, they use about $5$ times as much space.
 
-A before \lzend{}  compresses decently well, though not as well as sampled scan or A2PS0 block trees, however it is by far the slowest data structure in our tests and at least for random access and substring queries, A2PS0 block trees and grammars have the space and speed advantage.
+As before, \lzend{}  compresses decently well, though not as well as sampled scan or A2PS0 block trees, however it is by far the slowest data structure in our tests and at least for random access and substring queries, A2PS0 block trees and grammars have the space and speed advantage.
 
-While high-arity block trees with more prefix suffix data show the best query times here, 
+While high-arity block trees with more prefix suffix data show the best query times here,
 one should note that it seems that block trees have a steeper slowdown when it comes to increasing substring length in comparison to grammars.
 When comparing the results for substrings of length $10$ and $10,000$, we see that grammars experience a slowdown of around $2^8$, while e.g. A32PS16 block trees slowed down by a factor of $2^9$.
 Where the exact sweet spot for these parameters lies should be subject to further testing.
@@ -780,22 +768,158 @@ Where the exact sweet spot for these parameters lies should be subject to furthe
 For now, it seems that out of the data stuctures evaluated, block trees have the highest tunability and potential for higher query speeds, though their space requirements are significantly higher than those of sampled scan.
 Depending on the exact dataset and the available storage space, block trees or sampled scan might be the best option out of the tested data structures.
 
-\section{Conclusion}
+\newpage
+\subsection{Tradeoffs on highly repetetive texts}
 
-We have evaluated several compressed data structures in respect of their random access and substring queries and also their space consumption.
-When it comes to query speed, \emph{block trees} show the highest query speed, beating all others on any dataset by various amounts.
-On the other hand, if compression is the priority, then grammars show compression matching or beating block trees in many cases except on extremely repetetive data.
-Block trees were only keeping up by not storing any prefix/suffix data (A2PS0) and while compressing well, as seen in \cref{fig:03:ssspeedbt} have a very slow substring query speed.
+\begin{figure}[t]
+	\begin{tikzpicture}
+		\begin{groupplot}[height=25cm,group style={group size= 1 by 1, horizontal sep=2cm, vertical sep=2cm}]
+			\nextgroupplot[
+				title={Storage Space/Random Access Query Speed},
+				width=8cm,
+				height=7cm,
+				xlabel={},
+				ylabel={Time for $10^6$ queries. [$\lg_2$ ms]},
+				legend pos=north east,
+				%plotticks,
+				%xtick=\empty,
+				%ybar,
+				%bar width=1.2mm,
+				cycle list name=algs,
+				legend style={at={(1.5,0.5)},anchor=center},
+				legend columns=1
+			]
+			%% MULTIPLOT(ds,arity,prefix_suffix,filetype) SELECT AVG(space * 100.0 / input_size) AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="random_access"
+			%% AND (input_file LIKE "einstein%" OR input_file LIKE "fib41")
+			%% GROUP BY ds,filetype,arity,prefix_suffix ORDER BY MULTIPLOT
+			\addplot coordinates { (0.199655,8.34224) };
+			\addlegendentry{A2PS0};
+			\addplot coordinates { (0.684818,8.34291) };
+			\addlegendentry{A2PS4};
+			\addplot coordinates { (1.71877,8.33886) };
+			\addlegendentry{A2PS16};
+			\addplot coordinates { (1.25271,6.63791) };
+			\addlegendentry{A32PS0};
+			\addplot coordinates { (1.75177,6.62936) };
+			\addlegendentry{A32PS4};
+			\addplot coordinates { (3.24872,6.62614) };
+			\addlegendentry{A32PS16};
+			\addplot coordinates { (0.291068,13.4616) };
+			\addlegendentry{LzEnd};
+			\addplot coordinates { (2.40209,8.43265) };
+			\addlegendentry{Sampled Scan (RePair)};
+			\addplot coordinates { (2.40126,8.35914) };
+			\addlegendentry{Sampled Scan (Sequitur)};
+		\end{groupplot}
+	\end{tikzpicture}
+	\caption{Storage space in RAM for extremely repetetive texts plotted against random access query speed.}
+	\label{fig:03:spacetimerahr}
+\end{figure}
 
-When observing tradeoffs, block trees of high arity and with high amounts of prefix/suffix data show the highest query speed while grammars offer high compression albeit at slower query speeds.
 
-In conclusion, if on repetetive data high compression is the most important objective and substring queries are of lower importance,
-then lower arity block trees without any prefix/suffix data seem to offer the best trade-offs.
-They compress reasonably well in most cases and also offer fast random access queries.
+\begin{figure}[h]
+	\centering
+	\begin{tikzpicture}
+		\begin{groupplot}[
+				height=25cm,
+				group style={group size=1 by 2, horizontal sep=2cm, vertical sep=2cm}
+			]
+			\nextgroupplot[
+				title={Storage Space/Query Speed (Substring $10$)},
+				width=8cm,
+				height=8cm,
+				%xlabel={Space [\% of input size]},
+				ylabel={Time for $10^6$ queries. [$\lg_2$ ms]},
+				legend pos=north east,
+				%plotticks,
+				%xtick=\empty,
+				%ybar,
+				%bar width=1.2mm,
+				cycle list name=algs,
+				legend style={at={(1.5,0.5)},anchor=center},
+				legend columns=1
+			]
+			%% MULTIPLOT(ds,arity,prefix_suffix,filetype) SELECT AVG(space * 100.0 / input_size) AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="substring" AND substring_length=10
+			%% AND (input_file LIKE "einstein%" OR input_file LIKE "fib41")
+			%% GROUP BY MULTIPLOT ORDER BY MULTIPLOT
+			\addplot coordinates { (0.199655,11.3165) };
+			\addlegendentry{A2PS0};
+			\addplot coordinates { (0.684818,9.84745) };
+			\addlegendentry{A2PS4};
+			\addplot coordinates { (1.71877,8.34187) };
+			\addlegendentry{A2PS16};
+			\addplot coordinates { (1.25271,9.33912) };
+			\addlegendentry{A32PS0};
+			\addplot coordinates { (1.75177,8.17665) };
+			\addlegendentry{A32PS4};
+			\addplot coordinates { (3.24872,7.19118) };
+			\addlegendentry{A32PS16};
+			\addplot coordinates { (0.291068,14.5279) };
+			\addlegendentry{LzEnd};
+			\addplot coordinates { (2.40209,9.17883) };
+			\addlegendentry{Sampled Scan (RePair)};
+			\addplot coordinates { (2.40126,9.16807) };
+			\addlegendentry{Sampled Scan (Sequitur)};
 
-If substring queries are a priority then high-arity block trees with prefix/suffix data or sampled scan seem to be the best choice.
-The block trees seem to compress a less efficiently in the majority of cases but offered higher performance.
-Grammars on the other hand seemed to compress a bit more consistently and efficiently, while having worse performance.
+			\nextgroupplot[
+				title={Storage Space/Query Speed (Substring $10,000$)},
+				width=8cm,
+				height=8cm,
+				xlabel={Space [\% of input size]},
+				ylabel={Time for $10^6$ queries. [$\lg_2$ ms]},
+				legend pos=north east,
+				%plotticks,
+				%xtick=\empty,
+				cycle list name=algs,
+				legend style={at={(1.5,0.5)},anchor=center},
+				legend columns=1
+			]
+			%% MULTIPLOT(ds,arity,prefix_suffix,filetype) SELECT AVG(space * 100.0 / input_size) AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="substring" AND substring_length=10000
+			%% AND (input_file LIKE "einstein%" OR input_file LIKE "fib41")
+			%% GROUP BY MULTIPLOT ORDER BY MULTIPLOT
+			\addplot coordinates { (0.199655,21.0725) };
+			\addlegendentry{A2PS0};
+			\addplot coordinates { (0.684818,19.2246) };
+			\addlegendentry{A2PS4};
+			\addplot coordinates { (1.71877,17.402) };
+			\addlegendentry{A2PS16};
+			\addplot coordinates { (1.25271,19.1385) };
+			\addlegendentry{A32PS0};
+			\addplot coordinates { (1.75177,17.5002) };
+			\addlegendentry{A32PS4};
+			\addplot coordinates { (3.24872,16.1689) };
+			\addlegendentry{A32PS16};
+			\addplot coordinates { (0.291068,22.7216) };
+			\addlegendentry{LzEnd};
+			\addplot coordinates { (2.40209,17.5074) };
+			\addlegendentry{Sampled Scan (RePair)};
+			\addplot coordinates { (2.40126,17.5185) };
+			\addlegendentry{Sampled Scan (Sequitur)};
+
+		\end{groupplot}
+	\end{tikzpicture}
+	\caption{Storage space in RAM for extremely repetetive texts plotted against susbtring query speed for substrings of length $10$ and $10,000$ respectively.}
+	\label{fig:03:spacetimesshr}
+\end{figure}
+
+If we restrict the datasets to the most repetetive texts (\textbf{fib41} and both \textbf{einstein} texts), then the results change as we can see in \cref{fig:03:spacetimerahr,fig:03:spacetimesshr}
+In comparison to other data structures, sampled scan now offers the worst compression, excluding the A32PS16 block tree,
+which takes up about $20\%$ more space than sampled scan.
+Though as we can see, even A32PS16 only occupies about $3\%$ of the input text in space,
+so increasing performance by increasing arity and prefix/suffix data seems to be a viable strategy without incurring to great a space overhead.
+
+\lzend{} and the A2PS0 block tree compress the best, each occupying between $0.2\%$ and $0.3\%$ of the input text of space.
+However block trees perform faster queries both for random access and substrings.
+
+With these results, it seems most justifyable to pick block trees over the other data structures.
+Even with higher arity and more saved prefix/suffix data, block trees still offer good compression while offering comparatively high query speed.
+Though as noted in \cref{subsubsec:03:substrtradeoff} we see the same trend of sampled scan seeming to have a less harsh slowdown when compared to block trees.
+It remains to be seen whether sampled scan pulls ahead in performance for higher substring lenghts.
+
+\include{conclusion}
 
 \include{bib.tex}
 
