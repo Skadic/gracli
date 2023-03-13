@@ -303,7 +303,7 @@ Though for substrings, only figures for lengths $10$ and $10,000$ will be showca
 Out of the compressed formats, the block tree is the clear winner in most cases, the A32PS16 parameterization never being slower than $\texttt{std::string}$ by a factor of more than $4$,
 most of the time being ahead by several orders of magnitude in comparison to the others.
 We can see that the block tree's arity does have a performance impact, with higher arity block trees performing better than lower arity block trees.
-We also see that for sampled scan, whether the datastructure built on the RePair or Sequitur grammar is faster depends on the dataset.
+We also see that for sampled scan, whether the data structure built on the RePair or Sequitur grammar is faster depends on the dataset.
 But all in all the difference is not significant and the grammars were in many cases several orders of magnitude slower than the block trees.
 The \lzend{} data structure was the slowest on every dataset in this benchmark.
 
@@ -331,7 +331,7 @@ The \lzend{} data structure was the slowest on every dataset in this benchmark.
 			\addlegendentry{A2PS*};
 			\addplot coordinates { (cere,7.03342) (coreutils,7.11894) (e\_coli,6.75489) (einstein\_de,6.22882) (einstein\_en,6.56986) (fib41,6.83289) (influenza,6.53916) (kernel,6.80735) (para,6.9542) (worldleaders,6.08746) };
 			\addlegendentry{A32PS*};
-			\addplot coordinates { (cere,12.9549) (coreutils,13.3012) (e\_coli,12.7634) (einstein\_de,12.4686) (einstein\_en,12.9121) (fib41,13.4246) (influenza,13.2559) (kernel,12.8803) (para,12.9706) (worldleaders,13.67) };
+			\addplot coordinates { (cere,11.4903) (coreutils,11.7932) (e\_coli,11.0587) (einstein\_de,12.3848) (einstein\_en,13.1036) (fib41,14.8963) (influenza,11.7912) (kernel,11.5703) (para,11.4476) (worldleaders,11.9841) };
 			\addlegendentry{LzEnd};
 			\addplot coordinates { (cere,10.774) (coreutils,10.7814) (e\_coli,10.668) (einstein\_de,8.88264) (einstein\_en,8.93958) (fib41,7.47573) (influenza,9.90539) (kernel,10.8865) (para,10.8634) (worldleaders,8.96867) };
 			\addlegendentry{Sampled Scan (RePair)};
@@ -388,7 +388,7 @@ usually being about $4-8$ times faster.
 			\addlegendentry{A2PS0};
 			\addplot coordinates { (cere,7.5157) (coreutils,7.65105) (e\_coli,7.31288) (einstein\_de,6.97728) (einstein\_en,7.16993) (fib41,7.32193) (influenza,7.26679) (kernel,7.37504) (para,7.45121) (worldleaders,6.93074) };
 			\addlegendentry{A32PS16};
-			\addplot coordinates { (cere,14.9031) (coreutils,15.0466) (e\_coli,14.6792) (einstein\_de,14.059) (einstein\_en,14.2167) (fib41,14.1718) (influenza,14.7515) (kernel,14.855) (para,14.7967) (worldleaders,15.0138) };
+			\addplot coordinates { (cere,12.9855) (coreutils,13.1282) (e\_coli,12.6917) (einstein\_de,13.8071) (einstein\_en,14.4348) (fib41,15.3419) (influenza,13.1222) (kernel,13.0558) (para,12.9432) (worldleaders,13.1864) };
 			\addlegendentry{LzEnd};
 			\addplot coordinates { (cere,11.0841) (coreutils,11.1799) (e\_coli,11.0133) (einstein\_de,9.5411) (einstein\_en,9.66) (fib41,8.33539) (influenza,10.3151) (kernel,11.2432) (para,11.1674) (worldleaders,9.59991) };
 			\addlegendentry{Sampled Scan (RePair)};
@@ -417,7 +417,7 @@ usually being about $4-8$ times faster.
 			\addlegendentry{A2PS0};
 			\addplot coordinates { (cere,15.7818) (coreutils,15.8922) (e\_coli,15.5731) (einstein\_de,15.8991) (einstein\_en,16.0114) (fib41,16.3549) (influenza,15.3876) (kernel,15.9757) (para,15.773) (worldleaders,15.7193) };
 			\addlegendentry{A32PS16};
-			\addplot coordinates { (cere,24.1556) (coreutils,24.1378) (e\_coli,23.9044) (einstein\_de,23.108) (einstein\_en,22.9621) (fib41,20.1354) (influenza,23.6527) (kernel,24.1372) (para,23.9779) (worldleaders,23.6986) };
+			\addplot coordinates { (cere,22.0932) (coreutils,22.0423) (e\_coli,21.9074) (einstein\_de,22.9635) (einstein\_en,23.5386) (fib41,21.6626) (influenza,22.0934) (kernel,22.1399) (para,22.0543) (worldleaders,21.9583) };
 			\addlegendentry{LzEnd};
 			\addplot coordinates { (cere,18.2669) (coreutils,18.307) (e\_coli,18.3196) (einstein\_de,17.8303) (einstein\_en,17.8559) (fib41,16.836) (influenza,17.8795) (kernel,18.2382) (para,18.4188) (worldleaders,17.5317) };
 			\addlegendentry{Sampled Scan (RePair)};
@@ -516,6 +516,7 @@ it was still around $2^6$ times slower than \texttt{std::string} for substring o
 
 
 \subsection{Space}
+\label{subsec:03:space}
 
 \begin{figure}
 	\begin{tikzpicture}
@@ -542,7 +543,7 @@ it was still around $2^6$ times slower than \texttt{std::string} for substring o
 			\addlegendentry{A2PS0};
 			\addplot coordinates { (cere,13.0709) (coreutils,28.8438) (e\_coli,33.0989) (einstein\_de,6.04444) (einstein\_en,3.63183) (fib41,0.00144524) (influenza,28.6874) (kernel,11.3736) (para,14.0303) (worldleaders,33.1738) };
 			\addlegendentry{A32PS16};
-			\addplot coordinates { (cere,3.44954) (coreutils,7.57514) (e\_coli,18.7515) (einstein\_de,0.588544) (einstein\_en,0.325256) (fib41,0.0725531) (influenza,8.48877) (kernel,3.10165) (para,5.36822) (worldleaders,4.67683) };
+			\addplot coordinates { (cere,4.74887) (coreutils,8.77625) (e\_coli,22.1342) (einstein\_de,0.578539) (einstein\_en,0.29238) (fib41,0.00228581) (influenza,6.99753) (kernel,3.97781) (para,6.90708) (worldleaders,5.28054) };
 			\addlegendentry{LzEnd};
 			\addplot coordinates { (cere,3.66247) (coreutils,4.78419) (e\_coli,6.80754) (einstein\_de,2.46492) (einstein\_en,2.39754) (fib41,2.3438) (influenza,3.07129) (kernel,3.47155) (para,3.87532) (worldleaders,3.44297) };
 			\addlegendentry{Sampled Scan (RePair)};
@@ -609,152 +610,191 @@ Not only does the higher arity itself accelerate queries, but saving more prefix
 
 Lastly, we look at tradeoffs between query speed for random access and substring queries.
 
+%  AND (input_file="fib41" OR input_file LIKE "einstein%")
+
+\subsubsection{Random Access}
+
 \begin{figure}[h]
 	\begin{tikzpicture}
-		\begin{groupplot}[height=25cm,group style={group size= 1 by 2}]
+		\begin{groupplot}[height=25cm,group style={group size= 1 by 1, horizontal sep=2cm, vertical sep=2cm}]
 			\nextgroupplot[
-				title={Storage Space/Query Speed},
+				title={Storage Space/Random Access Query Speed},
 				width=8cm,
 				height=8cm,
-				xlabel={Space [\% of input size]},
-				ylabel={Time for $10^6$ queries. [$\lg 2$ ms]},
+				xlabel={},
+				ylabel={Time for $10^6$ queries. [$\lg_2$ ms]},
 				legend pos=north east,
 				%plotticks,
 				%xtick=\empty,
 				%ybar,
 				%bar width=1.2mm,
 				cycle list name=algs,
-				legend style={at={(0.5,1.25)},anchor=center},
-				legend columns=3
+				legend style={at={(1.5,0.5)},anchor=center},
+				legend columns=1
 			]
-			%% MULTIPLOT(ds,arity,filetype) SELECT AVG(space * 100.0 / input_size) AS x, LOG(2, query_time_total) AS y, MULTIPLOT
-			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="random_access" AND (prefix_suffix=0 OR ds!="blocktree") AND (input_file="fib41" OR input_file LIKE "einstein%")
-			%% GROUP BY ds,filetype,arity ORDER BY (x / y)
-			\addplot coordinates { (0.199655,8.57743) };
-			\addlegendentry{A2PS*,filetype=bt};
-			\addplot coordinates { (0.328784,12.9121) };
-			\addlegendentry{LzEnd};
-			\addplot coordinates { (1.25271,6.56986) };
-			\addlegendentry{A32PS*,filetype=bt};
-			\addplot coordinates { (2.40126,8.99435) };
-			\addlegendentry{Sampled Scan (Sequitur)};
-			\addplot coordinates { (2.40209,8.93958) };
-			\addlegendentry{Sampled Scan (RePair)};
-
-			\nextgroupplot[
-				title={},
-				width=8cm,
-				height=8cm,
-				xlabel={Space [\% of input size]},
-				ylabel={Time for $10^6$ queries. [$\lg 2$ ms]},
-				legend pos=north east,
-				%plotticks,
-				%xtick=\empty,
-				%ybar,
-				%bar width=1.2mm,
-				cycle list name=algs,
-				legend style={at={(0.5,1.25)},anchor=center},
-				legend columns=3
-			]
-			%% MULTIPLOT(ds,arity,prefix_suffix) SELECT AVG(space * 100.0 / input_size) AS x, LOG(2, query_time_total) AS y, MULTIPLOT
-			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="random_access" AND ds="blocktree" AND (input_file="fib41" OR input_file LIKE "einstein%")
-			%% GROUP BY ds,arity,prefix_suffix ORDER BY (x / y)
-			\addplot coordinates { (0.199655,8.57743) };
+			%% MULTIPLOT(ds,arity,prefix_suffix,filetype) SELECT AVG(space * 100.0 / input_size) AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
+			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="random_access"
+			%% GROUP BY ds,filetype,arity,prefix_suffix ORDER BY MULTIPLOT
+			\addplot coordinates { (3.87678,8.26776) };
 			\addlegendentry{A2PS0};
-			\addplot coordinates { (0.684818,8.56605) };
+			\addplot coordinates { (10.1705,8.28024) };
 			\addlegendentry{A2PS4};
-			\addplot coordinates { (1.25271,6.56986) };
-			\addlegendentry{A32PS0};
-			\addplot coordinates { (1.71877,8.56605) };
+			\addplot coordinates { (20.3748,8.2774) };
 			\addlegendentry{A2PS16};
-			\addplot coordinates { (1.75177,6.56986) };
+			\addplot coordinates { (12.4541,6.75881) };
+			\addlegendentry{A32PS0};
+			\addplot coordinates { (13.7868,6.78435) };
 			\addlegendentry{A32PS4};
-			\addplot coordinates { (3.24872,6.61471) };
+			\addplot coordinates { (17.7859,6.78974) };
 			\addlegendentry{A32PS16};
-
+			\addplot coordinates { (5.96955,12.152) };
+			\addlegendentry{LzEnd};
+			\addplot coordinates { (3.63216,9.81452) };
+			\addlegendentry{Sampled Scan (RePair)};
+			\addplot coordinates { (3.27067,9.74535) };
+			\addlegendentry{Sampled Scan (Sequitur)};
 		\end{groupplot}
 	\end{tikzpicture}
 	\caption{Storage space in RAM plotted against query speed.}
-	\label{fig:03:space}
+	\label{fig:03:spacetimera}
 \end{figure}
 
+As one can see in \cref{fig:03:spacetimera}, the A32PS0 Block Tree (prefix and suffix information is irrelevant here)
+has the best performance, though it also requires the most space, using around 3 times the space that the A2 block tree uses on average.
+As discussed in \cref{subsec:03:space}, in comparison to sampled scan, block trees compress better on extremely repetitive texts like \textbf{fib41} and \textbf{einstein}, though only when saving no prefix and suffix information.
+However we can also see that on average the grammars still compress slightly better than the block trees, even without prefix and suffix data, albeit with less query speed.
+It should be noted however that if in addition fast substring queries are required, the space requirement increases of course and block trees quickly become the least space-efficient data structure evaluated here.
+
+\lzend{} also compresses decently well, only slightly worse than the grammars and the A2PS0 block tree, however the query time is several orders of magnitude slower than the other data structures.
+In comparison to A2PS0 block trees, the block trees are $\approx 15$ times faster while always occupying less space than \lzend{} (see \cref{subsec:03:space}).
+
+For sampled scan there does not seem to be a significant difference in how RePair or Sequitur grammars perform.
+RePair grammars seem to be marginally faster while Sequitur grammars are marginally more space efficient.
+However the differences, at least on these datasets, are so small that they are insignificant.
+
+Overall, if only random access performance is of importance, A2PS0 block trees seem to offer the best tradeoff.
+A32PS0 block trees offer on average about $3$ times faster queries, they also occupy more than twice the space on average.
+If the block tree is very small to begin with, as it is for highly repetitive texts like \textbf{fib41} and \textbf{einstein}, then this space increase might be insignificant.
+
+\subsubsection{Substring}
+
 \begin{figure}[h]
+	\centering
 	\begin{tikzpicture}
-		\begin{groupplot}[height=25cm,group style={group size= 1 by 2}]
+		\begin{groupplot}[
+				height=25cm,
+				group style={group size=1 by 2, horizontal sep=2cm, vertical sep=2cm}
+			]
 			\nextgroupplot[
-				title={Storage Space/Query Speed},
+				title={Storage Space/Query Speed (Substring $10$)},
 				width=8cm,
 				height=8cm,
 				%xlabel={Space [\% of input size]},
-				ylabel={Time for $10^6$ queries. [$\lg 2$ ms]},
+				ylabel={Time for $10^6$ queries. [$\lg_2$ ms]},
 				legend pos=north east,
 				%plotticks,
 				%xtick=\empty,
 				%ybar,
 				%bar width=1.2mm,
 				cycle list name=algs,
-				legend style={at={(0.5,1.25)},anchor=center},
-				legend columns=3
+				legend style={at={(1.5,0.5)},anchor=center},
+				legend columns=1
 			]
-			%% MULTIPLOT(ds,arity,filetype) SELECT AVG(space * 100.0 / input_size) AS x, LOG(2, query_time_total) AS y, MULTIPLOT
+			%% MULTIPLOT(ds,arity,prefix_suffix,filetype) SELECT AVG(space * 100.0 / input_size) AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
 			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="substring" AND substring_length=10
-			%% AND (arity=2 AND prefix_suffix=0 OR arity=32 AND prefix_suffix=16 or ds!='blocktree')  
-			%% GROUP BY ds,filetype,arity ORDER BY ds,filetype
-			\addplot coordinates { (3.87678,11.2825) };
-			\addlegendentry{A2PS*};
-			\addplot coordinates { (17.7859,6.93074) };
-			\addlegendentry{A32PS*};
-			\addplot coordinates { (5.2398,15.0138) };
+			%% GROUP BY MULTIPLOT ORDER BY MULTIPLOT
+			\addplot coordinates { (3.87678,11.1436) };
+			\addlegendentry{A2PS0};
+			\addplot coordinates { (10.1705,9.67113) };
+			\addlegendentry{A2PS4};
+			\addplot coordinates { (20.3748,8.28408) };
+			\addlegendentry{A2PS16};
+			\addplot coordinates { (12.4541,9.02893) };
+			\addlegendentry{A32PS0};
+			\addplot coordinates { (13.7868,8.04089) };
+			\addlegendentry{A32PS4};
+			\addplot coordinates { (17.7859,7.36789) };
+			\addlegendentry{A32PS16};
+			\addplot coordinates { (5.96955,13.4697) };
 			\addlegendentry{LzEnd};
-			\addplot coordinates { (3.63216,9.59991) };
+			\addplot coordinates { (3.63216,10.314) };
 			\addlegendentry{Sampled Scan (RePair)};
-			\addplot coordinates { (3.27067,10.021) };
+			\addplot coordinates { (3.27067,10.3459) };
 			\addlegendentry{Sampled Scan (Sequitur)};
 
 			\nextgroupplot[
-				title={},
+				title={Storage Space/Query Speed (Substring $10,000$)},
 				width=8cm,
 				height=8cm,
 				xlabel={Space [\% of input size]},
-				ylabel={Time for $10^6$ queries. [$\lg 2$ ms]},
+				ylabel={Time for $10^6$ queries. [$\lg_2$ ms]},
 				legend pos=north east,
 				%plotticks,
 				%xtick=\empty,
-				%ybar,
-				%bar width=1.2mm,
 				cycle list name=algs,
-				legend style={at={(0.5,1.25)},anchor=center},
-				legend columns=3
+				legend style={at={(1.5,0.5)},anchor=center},
+				legend columns=1
 			]
-			%% MULTIPLOT(ds,arity,filetype) SELECT AVG(space * 100.0 / input_size) AS x, LOG(2, query_time_total) AS y, MULTIPLOT
+			%% MULTIPLOT(ds,arity,prefix_suffix,filetype) SELECT AVG(space * 100.0 / input_size) AS x, AVG(LOG(2, query_time_total)) AS y, MULTIPLOT
 			%% FROM data WHERE NOT ds="string" AND NOT input_file LIKE "%200" AND type="substring" AND substring_length=10000
-			%% AND (arity=2 AND prefix_suffix=0 OR arity=32 AND prefix_suffix=16 or ds!='blocktree')  
-			%% GROUP BY ds,filetype,arity ORDER BY ds,filetype
-			\addplot coordinates { (3.87678,21.0716) };
-			\addplot coordinates { (17.7859,15.7193) };
-			\addplot coordinates { (5.2398,23.6986) };
-			\addplot coordinates { (3.63216,17.5317) };
-			\addplot coordinates { (3.27067,17.7543) };
+			%% GROUP BY MULTIPLOT ORDER BY MULTIPLOT
+			\addplot coordinates { (3.87678,20.8973) };
+			\addlegendentry{A2PS0};
+			\addplot coordinates { (10.1705,18.985) };
+			\addlegendentry{A2PS4};
+			\addplot coordinates { (20.3748,17.2193) };
+			\addlegendentry{A2PS16};
+			\addplot coordinates { (12.4541,18.7274) };
+			\addlegendentry{A32PS0};
+			\addplot coordinates { (13.7868,17.1505) };
+			\addlegendentry{A32PS4};
+			\addplot coordinates { (17.7859,15.9475) };
+			\addlegendentry{A32PS16};
+			\addplot coordinates { (5.96955,22.2453) };
+			\addlegendentry{LzEnd};
+			\addplot coordinates { (3.63216,17.9484) };
+			\addlegendentry{Sampled Scan (RePair)};
+			\addplot coordinates { (3.27067,18.1373) };
+			\addlegendentry{Sampled Scan (Sequitur)};
 
 		\end{groupplot}
 	\end{tikzpicture}
-	\caption{Storage space in RAM plotted against query speed.}
-	\label{fig:03:space}
+	\caption{Storage space in RAM plotted against susbtring query speed for substrings of length $10$ and $10,000$ respectively.}
+	\label{fig:03:spacetimess}
 \end{figure}
+
+For substring queries we can see in \cref{fig:03:spacetimess} that the speed advantage of the A2PS0 block tree in comparison to sampled scan now no longer exists, even for short substrings of length $10$.
+In fact, with growing substring length, sampled scan' performance becomes more competitive with block trees.
+This is especially apparent in the results for substrings of length $10,000$, where sampled scans' performance sits between A32PS0 and A32PS4 block trees.
+However, we can also see again that sampled scan occupies significantly less space. On average, A32PS0 block trees occupied about $3.5$ times as much space as sampled scan while being about $60\%$ slower for substrings of length $10,000$.  
+
+In our tests, A32PS16 block trees offered the best performance, being about $4$ times faster than grammars for substrings of length $10,000$, though again, they use about $5$ times as much space.
+
+A before \lzend{}  compresses decently well, though not as well as sampled scan or A2PS0 block trees, however it is by far the slowest data structure in our tests and at least for random access and substring queries, A2PS0 block trees and grammars have the space and speed advantage.
+
+While high-arity block trees with more prefix suffix data show the best query times here, 
+one should note that it seems that block trees have a steeper slowdown when it comes to increasing substring length in comparison to grammars.
+When comparing the results for substrings of length $10$ and $10,000$, we see that grammars experience a slowdown of around $2^8$, while e.g. A32PS16 block trees slowed down by a factor of $2^9$.
+Where the exact sweet spot for these parameters lies should be subject to further testing.
+
+For now, it seems that out of the data stuctures evaluated, block trees have the highest tunability and potential for higher query speeds, though their space requirements are significantly higher than those of sampled scan.
+Depending on the exact dataset and the available storage space, block trees or sampled scan might be the best option out of the tested data structures.
 
 \section{Conclusion}
 
 We have evaluated several compressed data structures in respect of their random access and substring queries and also their space consumption.
 When it comes to query speed, \emph{block trees} show the highest query speed, beating all others on any dataset by various amounts.
 On the other hand, if compression is the priority, then grammars show compression matching or beating block trees in many cases except on extremely repetetive data.
-Block trees were only keeping up by not storing any prefix/suffix data (A2PS0) and while compressing well as seen in \cref{fig:03:ssspeedbt} have a very slow substring query speed.
+Block trees were only keeping up by not storing any prefix/suffix data (A2PS0) and while compressing well, as seen in \cref{fig:03:ssspeedbt} have a very slow substring query speed.
+
+When observing tradeoffs, block trees of high arity and with high amounts of prefix/suffix data show the highest query speed while grammars offer high compression albeit at slower query speeds.
 
 In conclusion, if on repetetive data high compression is the most important objective and substring queries are of lower importance,
-then block trees without any prefix/suffix data seem to offer the best trade-offs.
+then lower arity block trees without any prefix/suffix data seem to offer the best trade-offs.
 They compress reasonably well in most cases and also offer fast random access queries.
 
-If substring queries are a priority then high-arity block trees with prefix/suffix data or grammars seem to be the best choice.
-The block trees seem to compress a bit less efficiently in the majority of cases but offered higher performance.
+If substring queries are a priority then high-arity block trees with prefix/suffix data or sampled scan seem to be the best choice.
+The block trees seem to compress a less efficiently in the majority of cases but offered higher performance.
 Grammars on the other hand seemed to compress a bit more consistently and efficiently, while having worse performance.
 
 \include{bib.tex}
